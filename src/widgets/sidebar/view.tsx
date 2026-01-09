@@ -9,6 +9,7 @@ import {
   BrightnessFilter,
   ContastFilter,
   GrayscaleFilter,
+  GridToggle,
   HueFilter,
   ImageQualityFilter,
   SaturationFilter,
@@ -43,6 +44,8 @@ function Filters() {
       <HueFilter />
       <GrayscaleFilter />
       <SepiaFilter />
+      <hr className="border-zinc-800" />
+      <GridToggle />
       <ImageQualityFilter />
     </Fieldset>
   );

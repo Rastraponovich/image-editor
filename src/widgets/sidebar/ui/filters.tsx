@@ -3,13 +3,15 @@ import { useStoreMap, useUnit } from 'effector-react';
 import {
   $filtersRef,
   $imageQuality,
+  $isGridVisible,
   FilterKey,
   filtersChanged,
+  gridToggled,
   imageQualityChanged,
   initialFilters,
 } from '~/entities/image';
 
-import { Slider } from '~/shared/ui';
+import { Slider, Toggle } from '~/shared/ui';
 
 interface FilterProps {
   filterKey?: FilterKey;
@@ -215,4 +217,10 @@ export function ImageQualityFilter() {
       </p>
     </div>
   );
+}
+
+export function GridToggle() {
+  const [isGridVisible, onToggle] = useUnit([$isGridVisible, gridToggled]);
+
+  return <Toggle label="Сетка" checked={isGridVisible} onChange={onToggle} />;
 }

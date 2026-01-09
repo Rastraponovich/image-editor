@@ -41,14 +41,14 @@ export class CanvasEditor {
   private ctx: CanvasRenderingContext2D;
   private img: HTMLImageElement | null = null;
   private container: HTMLElement | null = null;
+  private viewport: HTMLElement | null = null;
   private resizeObserver: ResizeObserver | null = null;
   private filters: Map<FilterKey, number> = new Map();
   private quality: number = 100;
 
   constructor() {
     this.canvas = document.createElement('canvas');
-    this.canvas.className = 'shadow-2xl';
-    this.canvas.style.imageRendering = 'pixelated'; // Чтобы видеть пиксели при низком качестве
+    this.canvas.style.imageRendering = 'pixelated';
     const context = this.canvas.getContext('2d');
     if (!context) {
       throw new Error('Could not get canvas context');
@@ -57,13 +57,21 @@ export class CanvasEditor {
   }
 
   getContainerSize() {
-    if (!this.container) {
+    const target = this.viewport || this.container;
+    if (!target) {
       return { width: 0, height: 0 };
     }
 
+    // Получаем вычисленные стили, чтобы вычесть паддинги
+    const style = window.getComputedStyle(target);
+    const paddingX =
+      parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
+    const paddingY =
+      parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
+
     return {
-      width: this.container.clientWidth,
-      height: this.container.clientHeight,
+      width: target.clientWidth - paddingX,
+      height: target.clientHeight - paddingY,
     };
   }
 
@@ -100,17 +108,18 @@ export class CanvasEditor {
   }
 
   // Метод для привязки к React-рефу
-  mount(container: HTMLElement) {
+  mount(container: HTMLElement, viewport?: HTMLElement) {
     if (this.container === container) return;
 
     this.container = container;
+    this.viewport = viewport || container;
     container.appendChild(this.canvas);
 
     this.resizeObserver = new ResizeObserver(() => {
       this.fitToContainer();
     });
 
-    this.resizeObserver.observe(container);
+    this.resizeObserver.observe(this.viewport);
     this.fitToContainer();
   }
 

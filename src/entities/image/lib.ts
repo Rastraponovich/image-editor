@@ -1,15 +1,23 @@
 import type { FilterKey } from './model';
 
-export const applyFiltersToContext = (
-  ctx: CanvasRenderingContext2D,
-  image: HTMLImageElement,
-  filters: Map<FilterKey, number>,
-  canvasWidth: number,
-  canvasHeight: number,
-) => {
-  ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+/**
+ * Опции для настройки отображения сетки
+ */
+export interface GridOptions {
+  rows?: number;
+  cols?: number;
+  strokeStyleMain?: string;
+  strokeStyleShadow?: string;
+  lineWidthMain?: number;
+  lineWidthShadow?: number;
+}
 
-  // Значения по умолчанию для каждого фильтра
+/**
+ * Генерирует строку CSS-фильтров на основе карты параметров.
+ * @param filters - Карта фильтров (яркость, контраст и т.д.)
+ * @returns Валидная строка для свойства ctx.filter
+ */
+export function createFilterString(filters: Map<FilterKey, number>): string {
   const f = {
     brightness: filters.get('brightness') ?? 100,
     contrast: filters.get('contrast') ?? 100,
@@ -20,7 +28,7 @@ export const applyFiltersToContext = (
     hue: filters.get('hue') ?? 0,
   };
 
-  const filterString = [
+  return [
     `brightness(${f.brightness}%)`,
     `contrast(${f.contrast}%)`,
     `saturate(${f.saturation}%)`,
@@ -29,190 +37,141 @@ export const applyFiltersToContext = (
     `grayscale(${f.grayscale}%)`,
     `hue-rotate(${f.hue}deg)`,
   ].join(' ');
+}
 
-  ctx.filter = filterString;
+/**
+ * Вычисляет координаты линий для сетки.
+ * @param width - Ширина холста
+ * @param height - Высота холста
+ * @param rows - Количество строк
+ * @param cols - Количество колонок
+ * @returns Списки координат X для вертикальных и Y для горизонтальных линий
+ */
+export function calculateGridLines(
+  width: number,
+  height: number,
+  rows: number,
+  cols: number,
+) {
+  const vertical = [];
+  const horizontal = [];
 
-  // Draw image
-  ctx.drawImage(image, 0, 0, canvasWidth, canvasHeight);
-};
-
-export class CanvasEditor {
-  private canvas: HTMLCanvasElement;
-  private ctx: CanvasRenderingContext2D;
-  private img: HTMLImageElement | null = null;
-  private container: HTMLElement | null = null;
-  private viewport: HTMLElement | null = null;
-  private resizeObserver: ResizeObserver | null = null;
-  private filters: Map<FilterKey, number> = new Map();
-  private quality: number = 100;
-
-  constructor() {
-    this.canvas = document.createElement('canvas');
-    this.canvas.style.imageRendering = 'pixelated';
-    const context = this.canvas.getContext('2d');
-    if (!context) {
-      throw new Error('Could not get canvas context');
-    }
-    this.ctx = context;
+  for (let i = 1; i < cols; i++) {
+    vertical.push((width / cols) * i);
+  }
+  for (let i = 1; i < rows; i++) {
+    horizontal.push((height / rows) * i);
   }
 
-  getContainerSize() {
-    const target = this.viewport || this.container;
-    if (!target) {
-      return { width: 0, height: 0 };
-    }
+  return { vertical, horizontal };
+}
 
-    // Получаем вычисленные стили, чтобы вычесть паддинги
-    const style = window.getComputedStyle(target);
-    const paddingX =
-      parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
-    const paddingY =
-      parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
+/**
+ * Вычисляет размеры для вписывания изображения в контейнер (object-fit: contain).
+ * @param imgWidth - Исходная ширина изображения
+ * @param imgHeight - Исходная высота изображения
+ * @param containerWidth - Ширина доступной области
+ * @param containerHeight - Высота доступной области
+ * @returns Результирующие размеры width и height
+ */
+export function calculateFitDimensions(
+  imgWidth: number,
+  imgHeight: number,
+  containerWidth: number,
+  containerHeight: number,
+) {
+  const imgAspectRatio = imgWidth / imgHeight;
+  const containerAspectRatio = containerWidth / containerHeight;
 
+  if (imgAspectRatio > containerAspectRatio) {
     return {
-      width: target.clientWidth - paddingX,
-      height: target.clientHeight - paddingY,
+      width: containerWidth,
+      height: containerWidth / imgAspectRatio,
     };
   }
 
-  // Метод для автоматического расчета размеров с сохранением пропорций
-  fitToContainer() {
-    if (!this.img || !this.container) {
-      return;
-    }
+  return {
+    width: containerHeight * imgAspectRatio,
+    height: containerHeight,
+  };
+}
 
-    const { width: containerWidth, height: containerHeight } =
-      this.getContainerSize();
-    if (containerWidth === 0 || containerHeight === 0) {
-      return;
-    }
+/**
+ * Отрисовывает изображение с применением фильтров на холсте.
+ * @param ctx - Контекст рисования 2D
+ * @param image - Элемент изображения
+ * @param filters - Карта активных фильтров
+ * @param canvasWidth - Ширина области отрисовки
+ * @param canvasHeight - Высота области отрисовки
+ */
+export function applyFiltersToContext(
+  ctx: CanvasRenderingContext2D,
+  image: HTMLImageElement,
+  filters: Map<FilterKey, number>,
+  canvasWidth: number,
+  canvasHeight: number,
+) {
+  ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+  ctx.filter = createFilterString(filters);
+  ctx.drawImage(image, 0, 0, canvasWidth, canvasHeight);
+  // Сбрасываем фильтр, чтобы он не влиял на последующие отрисовки (например, сетку)
+  ctx.filter = 'none';
+}
 
-    const imgWidth = this.img.naturalWidth;
-    const imgHeight = this.img.naturalHeight;
-    const imgAspectRatio = imgWidth / imgHeight;
-    const containerAspectRatio = containerWidth / containerHeight;
+/**
+ * Отрисовывает сетку 3x3 (или другую) поверх изображения.
+ * Использует двойной проход для обеспечения видимости на любом фоне.
+ * @param ctx - Контекст рисования 2D
+ * @param width - Ширина холста
+ * @param height - Высота холста
+ * @param options - Настройки сетки
+ */
+export function drawGrid(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  options: GridOptions = {},
+) {
+  const {
+    rows = 3,
+    cols = 3,
+    strokeStyleMain = 'rgba(255, 255, 255, 0.9)',
+    strokeStyleShadow = 'rgba(0, 0, 0, 0.5)',
+    lineWidthMain = 1,
+    lineWidthShadow = 3,
+  } = options;
 
-    let canvasWidth, canvasHeight;
+  const { vertical, horizontal } = calculateGridLines(
+    width,
+    height,
+    rows,
+    cols,
+  );
 
-    if (imgAspectRatio > containerAspectRatio) {
-      // Изображение шире относительно контейнера
-      canvasWidth = containerWidth;
-      canvasHeight = containerWidth / imgAspectRatio;
-    } else {
-      // Изображение выше относительно контейнера
-      canvasHeight = containerHeight;
-      canvasWidth = containerHeight * imgAspectRatio;
-    }
+  ctx.save();
 
-    this.setDimensions(canvasWidth, canvasHeight);
-  }
+  const drawPass = (style: string, lineWidth: number) => {
+    ctx.strokeStyle = style;
+    ctx.lineWidth = lineWidth;
+    ctx.beginPath();
 
-  // Метод для привязки к React-рефу
-  mount(container: HTMLElement, viewport?: HTMLElement) {
-    if (this.container === container) return;
-
-    this.container = container;
-    this.viewport = viewport || container;
-    container.appendChild(this.canvas);
-
-    this.resizeObserver = new ResizeObserver(() => {
-      this.fitToContainer();
+    vertical.forEach(x => {
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, height);
     });
 
-    this.resizeObserver.observe(this.viewport);
-    this.fitToContainer();
-  }
-
-  unmount() {
-    this.resizeObserver?.disconnect();
-    this.resizeObserver = null;
-    this.canvas.remove();
-    this.container = null;
-  }
-
-  // Методы манипуляции
-  async loadImage(url: string) {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.src = url;
-      img.onload = () => {
-        this.img = img;
-        this.fitToContainer();
-        resolve(true);
-      };
-      img.onerror = () => {
-        reject(new Error(`Failed to load image: ${url}`));
-      };
+    horizontal.forEach(y => {
+      ctx.moveTo(0, y);
+      ctx.lineTo(width, y);
     });
-  }
 
-  setFilters(filters: Map<FilterKey, number>) {
-    this.filters = filters;
-    this.render();
-  }
+    ctx.stroke();
+  };
 
-  setQuality(quality: number) {
-    this.quality = quality;
-    this.fitToContainer();
-  }
+  // 1. Рисуем темную обводку (тень)
+  drawPass(strokeStyleShadow, lineWidthShadow);
+  // 2. Рисуем основную светлую линию
+  drawPass(strokeStyleMain, lineWidthMain);
 
-  setDimensions(width: number, height: number) {
-    // CSS-размеры (как холст выглядит на экране)
-    this.canvas.style.width = `${width}px`;
-    this.canvas.style.height = `${height}px`;
-
-    // Внутренние размеры (реальное разрешение)
-    this.canvas.width = width * (this.quality / 100);
-    this.canvas.height = height * (this.quality / 100);
-
-    this.render();
-  }
-
-  render() {
-    if (!this.img) {
-      return;
-    }
-
-    applyFiltersToContext(
-      this.ctx,
-      this.img,
-      this.filters,
-      this.canvas.width,
-      this.canvas.height,
-    );
-  }
-
-  getCanvas() {
-    return this.canvas;
-  }
-
-  // Получить данные изображения с сохранением оригинальных размеров
-  toDataURL(type = 'image/jpeg', quality = 1) {
-    if (!this.img) return '';
-
-    // Всегда используем оригинальные размеры изображения
-    const width = this.img.naturalWidth;
-    const height = this.img.naturalHeight;
-
-    // Создаем временный канвас в полном разрешении
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = width;
-    tempCanvas.height = height;
-    const tempCtx = tempCanvas.getContext('2d');
-
-    if (!tempCtx) return '';
-
-    // Применяем фильтры и рисуем в полном разрешении
-    applyFiltersToContext(
-      tempCtx,
-      this.img,
-      this.filters,
-      tempCanvas.width,
-      tempCanvas.height,
-    );
-
-    // Возвращаем dataURL. Параметр quality здесь влияет только на компрессию JPEG/WebP.
-    return tempCanvas.toDataURL(type, quality);
-  }
+  ctx.restore();
 }

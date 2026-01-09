@@ -3,6 +3,11 @@ import { Image as ImageIcon } from 'lucide-react';
 import { DownloadImageButton } from '~/features/download-image';
 import { RedoButton, UndoButton } from '~/features/history-buttons';
 import { UploadImageButton } from '~/features/upload-image';
+import {
+  ResetZoomButton,
+  ZoomInButton,
+  ZoomOutButton,
+} from '~/features/viewport-control';
 
 export function Header() {
   return (
@@ -13,6 +18,11 @@ export function Header() {
       </div>
 
       <div className="flex items-center gap-4">
+        <div className="mr-4 flex items-center gap-1 border-r border-zinc-800 pr-4">
+          <ResetZoomButton />
+          <ZoomInButton />
+          <ZoomOutButton />
+        </div>
         <div className="mr-4 flex items-center gap-1 border-r border-zinc-800 pr-4">
           <UndoButton />
           <RedoButton />

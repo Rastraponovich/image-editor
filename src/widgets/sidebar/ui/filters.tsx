@@ -5,10 +5,10 @@ import {
   $imageQuality,
   $isGridVisible,
   FilterKey,
+  INITIAL_FILTERS,
   filtersChanged,
   gridToggled,
   imageQualityChanged,
-  initialFilters,
 } from '~/entities/image';
 
 import { Slider, Toggle } from '~/shared/ui';
@@ -26,7 +26,7 @@ export function BrightnessFilter(props: FilterProps) {
     keys: [filterKey],
     store: $filtersRef,
     fn: ({ ref }, [key]) => ref.get(key),
-    defaultValue: initialFilters[filterKey],
+    defaultValue: INITIAL_FILTERS[filterKey],
   });
 
   return (
@@ -52,7 +52,7 @@ export function BlurFilter(props: FilterProps) {
     keys: [filterKey],
     store: $filtersRef,
     fn: ({ ref }, [key]) => ref.get(key),
-    defaultValue: initialFilters[filterKey],
+    defaultValue: INITIAL_FILTERS[filterKey],
   });
 
   return (
@@ -78,7 +78,7 @@ export function ContastFilter(props: FilterProps) {
     keys: [filterKey],
     store: $filtersRef,
     fn: ({ ref }, [key]) => ref.get(key),
-    defaultValue: initialFilters[filterKey],
+    defaultValue: INITIAL_FILTERS[filterKey],
   });
 
   return (
@@ -103,7 +103,7 @@ export function SaturationFilter(props: FilterProps) {
     keys: [filterKey],
     store: $filtersRef,
     fn: ({ ref }, [key]) => ref.get(key),
-    defaultValue: initialFilters[filterKey],
+    defaultValue: INITIAL_FILTERS[filterKey],
   });
 
   return (
@@ -129,7 +129,7 @@ export function HueFilter(props: FilterProps) {
     keys: [filterKey],
     store: $filtersRef,
     fn: ({ ref }, [key]) => ref.get(key),
-    defaultValue: initialFilters[filterKey],
+    defaultValue: INITIAL_FILTERS[filterKey],
   });
 
   return (
@@ -155,7 +155,7 @@ export function GrayscaleFilter(props: FilterProps) {
     keys: [filterKey],
     store: $filtersRef,
     fn: ({ ref }, [key]) => ref.get(key),
-    defaultValue: initialFilters[filterKey],
+    defaultValue: INITIAL_FILTERS[filterKey],
   });
 
   return (
@@ -181,7 +181,7 @@ export function SepiaFilter(props: FilterProps) {
     store: $filtersRef,
     keys: [filterKey],
     fn: ({ ref }, [key]) => ref.get(key),
-    defaultValue: initialFilters[filterKey],
+    defaultValue: INITIAL_FILTERS[filterKey],
   });
 
   return (

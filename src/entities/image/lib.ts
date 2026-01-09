@@ -1,4 +1,5 @@
-import type { FilterKey } from './model';
+import { DEFAULT_GRID_COLS, DEFAULT_GRID_ROWS } from './constants';
+import type { FilterKey } from './types';
 
 /**
  * Опции для настройки отображения сетки
@@ -133,8 +134,8 @@ export function drawGrid(
   options: GridOptions = {},
 ) {
   const {
-    rows = 3,
-    cols = 3,
+    rows = DEFAULT_GRID_ROWS,
+    cols = DEFAULT_GRID_COLS,
     strokeStyleMain = 'rgba(255, 255, 255, 0.9)',
     strokeStyleShadow = 'rgba(0, 0, 0, 0.5)',
     lineWidthMain = 1,

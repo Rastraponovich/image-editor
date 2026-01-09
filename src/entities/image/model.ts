@@ -6,7 +6,7 @@ import {
   sample,
 } from 'effector';
 
-import { CanvasEditor } from './lib';
+import { applyFiltersToContext, calculateFitDimensions, drawGrid } from './lib';
 
 export const FilterKey = {
   brightness: 'brightness',
@@ -40,15 +40,260 @@ export const initialFilters: Filters = {
   [FilterKey.brightness]: 100,
 };
 
+/**
+ * Класс управления редактором изображений на базе Canvas.
+ * Обеспечивает монтирование к DOM, управление размерами и рендеринг.
+ */
+export class CanvasEditor {
+  private canvas: HTMLCanvasElement;
+  private ctx: CanvasRenderingContext2D | null = null;
+  private img: HTMLImageElement | null = null;
+  private container: HTMLElement | null = null;
+  private viewport: HTMLElement | null = null;
+  private resizeObserver: ResizeObserver | null = null;
+  private filters: Map<FilterKey, number> = new Map();
+  private quality: number = 100;
+  private isGridVisible: boolean = false;
+
+  /**
+   * Конструктор редактора.
+   * @param canvas - Опциональный элемент холста (если не передан, создастся автоматически)
+   */
+  constructor(canvas?: HTMLCanvasElement) {
+    this.canvas = canvas || document.createElement('canvas');
+    this.initializeContext();
+  }
+
+  /**
+   * Инициализация 2D контекста с настройками рендеринга.
+   */
+  private initializeContext() {
+    // imageRendering = pixelated позволяет видеть артефакты при низком качестве (quality)
+    this.canvas.style.imageRendering = 'pixelated';
+    this.ctx = this.canvas.getContext('2d');
+
+    // Если контекст не получен (например, в тестах без заглушек),
+    // мы не выбрасываем ошибку сразу, а проверяем его при отрисовке.
+  }
+
+  /**
+   * Вычисляет доступный размер контейнера с учетом вьюпорта и паддингов.
+   * @returns Объект с шириной и высотой
+   */
+  public getContainerSize() {
+    const target = this.viewport || this.container;
+    if (!target) {
+      return { width: 0, height: 0 };
+    }
+
+    const style = window.getComputedStyle(target);
+    const paddingX =
+      parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
+    const paddingY =
+      parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
+
+    return {
+      width: Math.max(0, target.clientWidth - paddingX),
+      height: Math.max(0, target.clientHeight - paddingY),
+    };
+  }
+
+  /**
+   * Подгоняет размеры холста под размеры вьюпорта, сохраняя пропорции изображения.
+   */
+  public fitToContainer() {
+    if (!this.img || !this.container) {
+      return;
+    }
+
+    const { width: containerWidth, height: containerHeight } =
+      this.getContainerSize();
+
+    if (containerWidth === 0 || containerHeight === 0) {
+      return;
+    }
+
+    const { width, height } = calculateFitDimensions(
+      this.img.naturalWidth,
+      this.img.naturalHeight,
+      containerWidth,
+      containerHeight,
+    );
+
+    this.setDimensions(width, height);
+  }
+
+  /**
+   * Инициализирует редактор, привязывая его к DOM-элементам.
+   * @param container - Элемент, куда будет вставлен canvas (ArtBoard)
+   * @param viewport - Элемент, по которому считаются размеры (Stage)
+   */
+  public mount(container: HTMLElement, viewport?: HTMLElement) {
+    if (this.container === container) return;
+
+    this.container = container;
+    this.viewport = viewport || container;
+    container.appendChild(this.canvas);
+
+    // Подписываемся на изменение размеров вьюпорта
+    if (typeof ResizeObserver !== 'undefined') {
+      this.resizeObserver = new ResizeObserver(() => {
+        this.fitToContainer();
+      });
+      this.resizeObserver.observe(this.viewport);
+    }
+
+    this.fitToContainer();
+  }
+
+  /**
+   * Удаляет обработчики и очищает ссылки при демонтаже компонента.
+   */
+  public unmount() {
+    this.resizeObserver?.disconnect();
+    this.resizeObserver = null;
+    this.canvas.remove();
+    this.container = null;
+    this.viewport = null;
+  }
+
+  /**
+   * Загружает изображение по URL.
+   * @param url - Ссылка на изображение
+   */
+  public async loadImage(url: string): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.src = url;
+      img.onload = () => {
+        this.img = img;
+        this.fitToContainer();
+        resolve(true);
+      };
+      img.onerror = () => {
+        reject(new Error(`Failed to load image: ${url}`));
+      };
+    });
+  }
+
+  /**
+   * Обновляет активные фильтры.
+   * @param filters - Map с параметрами фильтров
+   */
+  public setFilters(filters: Map<FilterKey, number>) {
+    this.filters = filters;
+    this.render();
+  }
+
+  /**
+   * Устанавливает качество (влияет на физическое разрешение холста).
+   * @param quality - Число от 1 до 100
+   */
+  public setQuality(quality: number) {
+    this.quality = quality;
+    this.fitToContainer();
+  }
+
+  /**
+   * Переключает видимость сетки.
+   * @param visible - Флаг видимости
+   */
+  public setGridVisible(visible: boolean) {
+    this.isGridVisible = visible;
+    this.render();
+  }
+
+  /**
+   * Устанавливает визуальные (CSS) и физические размеры холста.
+   * @param width - Визуальная ширина
+   * @param height - Визуальная высота
+   */
+  public setDimensions(width: number, height: number) {
+    this.canvas.style.width = `${width}px`;
+    this.canvas.style.height = `${height}px`;
+
+    // Реальное количество пикселей холста зависит от параметра качества.
+    // Это создает эффект пикселизации при низком качестве и экономит ресурсы.
+    this.canvas.width = width * (this.quality / 100);
+    this.canvas.height = height * (this.quality / 100);
+
+    this.render();
+  }
+
+  /**
+   * Основной метод отрисовки. Вызывает применение фильтров и отрисовку сетки.
+   */
+  public render() {
+    if (!this.img || !this.ctx) {
+      return;
+    }
+
+    applyFiltersToContext(
+      this.ctx,
+      this.img,
+      this.filters,
+      this.canvas.width,
+      this.canvas.height,
+    );
+
+    if (this.isGridVisible) {
+      drawGrid(this.ctx, this.canvas.width, this.canvas.height);
+    }
+  }
+
+  /**
+   * Возвращает HTML-элемент холста.
+   */
+  public getCanvas() {
+    return this.canvas;
+  }
+
+  /**
+   * Экспортирует текущее состояние в dataURL с сохранением оригинальных размеров изображения.
+   * @param type - MIME тип (image/jpeg, image/png)
+   * @param quality - Качество сжатия (0..1)
+   */
+  public toDataURL(type = 'image/jpeg', quality = 1): string {
+    if (!this.img) {
+      return '';
+    }
+
+    const width = this.img.naturalWidth;
+    const height = this.img.naturalHeight;
+
+    // Используем временный холст для экспорта в оригинальном разрешении
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = width;
+    tempCanvas.height = height;
+    const tempCtx = tempCanvas.getContext('2d');
+
+    if (!tempCtx) {
+      return '';
+    }
+
+    applyFiltersToContext(
+      tempCtx,
+      this.img,
+      this.filters,
+      tempCanvas.width,
+      tempCanvas.height,
+    );
+
+    return tempCanvas.toDataURL(type, quality);
+  }
+}
+
 // Эффект для инициализации (привязки к DOM)
 export const mountCanvasFx = createEffect<
   {
     container: HTMLElement;
+    viewport: HTMLElement;
     editor: CanvasEditor;
   },
   void
->(({ container, editor }) => {
-  editor.mount(container);
+>(({ container, viewport, editor }) => {
+  editor.mount(container, viewport);
 });
 
 // Эффект для обновления картинки
@@ -65,10 +310,12 @@ export const applyFiltersFx = createEffect<
     editor: CanvasEditor;
     filters: Map<FilterKey, number>;
     quality: number;
+    isGridVisible: boolean;
   },
   void
->(({ editor, filters, quality }) => {
+>(({ editor, filters, quality, isGridVisible }) => {
   editor.setQuality(quality);
+  editor.setGridVisible(isGridVisible);
   editor.setFilters(filters);
 });
 
@@ -85,6 +332,7 @@ const imageUploadFx = createEffect(async (file: File) => {
 export const mountCanvas = createEvent<{
   editor: CanvasEditor;
   container: HTMLElement;
+  viewport: HTMLElement;
 }>();
 
 export const imageUploadStarted = createEvent<File>();
@@ -92,6 +340,7 @@ export const imageUploaded = createEvent<string>();
 export const resetFilters = createEvent();
 
 export const imageQualityChanged = createEvent<number>();
+export const gridToggled = createEvent<boolean>();
 
 export const $canvas = createStore<CanvasEditor>(new CanvasEditor());
 export const $filtersRef = createStore({
@@ -106,6 +355,8 @@ export const $image = restore(imageUploaded, null);
 export const $imageQuality = restore(imageQualityChanged, 100).reset(
   resetFilters,
 );
+
+export const $isGridVisible = restore(gridToggled, false);
 
 const $counter = createStore(0).on($filtersRef, counter => counter + 1);
 
@@ -162,12 +413,18 @@ sample({
 });
 
 sample({
-  clock: [$filtersRef, $imageQuality],
-  source: { canvas: $canvas, filters: $filtersRef, quality: $imageQuality },
-  fn: ({ canvas, filters, quality }) => ({
+  clock: [$filtersRef, $imageQuality, $isGridVisible],
+  source: {
+    canvas: $canvas,
+    filters: $filtersRef,
+    quality: $imageQuality,
+    isGridVisible: $isGridVisible,
+  },
+  fn: ({ canvas, filters, quality, isGridVisible }) => ({
     editor: canvas,
     filters: filters.ref,
     quality,
+    isGridVisible,
   }),
   target: applyFiltersFx,
 });

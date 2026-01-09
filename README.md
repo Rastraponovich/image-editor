@@ -1,73 +1,69 @@
-# React + TypeScript + Vite
+# Image Web Editor
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Простой и мощный веб-редактор изображений, построенный на современных технологиях.
 
-Currently, two official plugins are available:
+## Технологический стек
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Frontend**: React 19 + TypeScript
+- **Сборка**: Vite
+- **State Management**: Effector (с использованием паттерна Clean Architecture/FSD)
+- **Styling**: Tailwind CSS 4
+- **Инструменты**: ESLint, Prettier, Husky, lint-staged
 
-## React Compiler
+## Основные возможности
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Загрузка изображений**: Быстрая загрузка локальных файлов для редактирования.
+- **Редактор на Canvas**: Высокопроизводительный рендеринг изменений в реальном времени.
+- **Набор фильтров**:
+  - Яркость, Контраст, Насыщенность
+  - Размытие (Blur)
+  - Сепия и Grayscale
+  - Изменение оттенка (Hue Rotate)
+- **Управление качеством**:
+  - Визуальный предпросмотр артефактов сжатия (пикселизация) прямо в редакторе.
+  - Настройка компрессии при сохранении.
+- **Адаптивность**: Холст автоматически подстраивается под размеры окна с сохранением пропорций (Aspect Ratio) изображения.
+- **Экспорт**: Скачивание итогового изображения в формате JPEG с учетом всех примененных фильтров и выбранного качества.
 
-## Expanding the ESLint configuration
+## Архитектура
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+Проект следует методологии **Feature-Sliced Design (FSD)**:
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+- `app`: Инициализация приложения, провайдеры и глобальные стили.
+- `pages`: Страницы приложения (MainPage).
+- `widgets`: Сложные компоненты (Stage, Sidebar, Header).
+- `features`: Пользовательские сценарии (Загрузка, Скачивание, Управление фильтрами).
+- `entities`: Бизнес-сущности (Image, CanvasEditor).
+- `shared`: Переиспользуемые утилиты, UI-кит и конфигурации.
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## Развертывание и разработка
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-]);
+### Установка зависимостей
+
+```bash
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### Запуск в режиме разработки
 
-```js
-// eslint.config.js
-import reactDom from 'eslint-plugin-react-dom';
-import reactX from 'eslint-plugin-react-x';
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-]);
+```bash
+npm run dev
 ```
+
+### Сборка для продакшена
+
+```bash
+npm run build
+```
+
+### Запуск тестов
+
+```bash
+npm run test
+```
+
+## Git Hooks
+
+В проекте настроен **Husky**:
+
+- Перед каждым коммитом запускаются тесты (`vitest`) и `lint-staged` для проверки качества кода.

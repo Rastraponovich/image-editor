@@ -1,0 +1,1 @@
+export { DownloadImageButton } from './view';

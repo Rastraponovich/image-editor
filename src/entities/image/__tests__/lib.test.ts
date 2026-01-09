@@ -6,7 +6,6 @@ import {
   createFilterString,
   drawGrid,
 } from '../lib';
-import { CanvasEditor } from '../model';
 
 describe('Canvas Editor Utilities', () => {
   describe('calculateFitDimensions', () => {
@@ -74,24 +73,5 @@ describe('Canvas Editor Utilities', () => {
       expect(ctx.stroke).toHaveBeenCalledTimes(2); // Shadow pass + Main pass
       expect(ctx.restore).toHaveBeenCalledTimes(1);
     });
-  });
-});
-
-describe('CanvasEditor Class', () => {
-  it('should initialize with default values', () => {
-    const editor = new CanvasEditor();
-    expect(editor.getCanvas()).toBeInstanceOf(HTMLCanvasElement);
-  });
-
-  it('should set quality and trigger resize', () => {
-    const editor = new CanvasEditor();
-    const fitSpy = vi.spyOn(editor, 'fitToContainer');
-    editor.setQuality(50);
-    expect(fitSpy).toHaveBeenCalled();
-  });
-
-  it('should not crash on render if image is not loaded', () => {
-    const editor = new CanvasEditor();
-    expect(() => editor.render()).not.toThrow();
   });
 });

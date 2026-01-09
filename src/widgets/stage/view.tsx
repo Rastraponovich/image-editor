@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useState } from 'react';
 
 import { useUnit } from 'effector-react';
 
@@ -6,21 +6,21 @@ import { $image } from '~/entities/image';
 
 import { cn } from '~/shared/lib/cn';
 
-import { ArtBoard, ImageCanvas } from './ui/image-canvas';
+import { ImageCanvas } from './ui/image-canvas';
 
 export function CanvasStage() {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [viewport, setViewport] = useState<HTMLDivElement | null>(null);
 
   return (
     <div
-      ref={containerRef}
+      ref={setViewport}
       className="flex h-full w-full items-center justify-center overflow-hidden bg-zinc-900 p-12"
     >
-      <Wrapper>
-        <ArtBoard>
-          <ImageCanvas />
-        </ArtBoard>
-      </Wrapper>
+      {viewport && (
+        <Wrapper>
+          <ImageCanvas viewport={viewport} />
+        </Wrapper>
+      )}
     </div>
   );
 }

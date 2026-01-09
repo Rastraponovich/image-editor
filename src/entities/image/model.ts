@@ -44,11 +44,12 @@ export const initialFilters: Filters = {
 export const mountCanvasFx = createEffect<
   {
     container: HTMLElement;
+    viewport: HTMLElement;
     editor: CanvasEditor;
   },
   void
->(({ container, editor }) => {
-  editor.mount(container);
+>(({ container, viewport, editor }) => {
+  editor.mount(container, viewport);
 });
 
 // Эффект для обновления картинки
@@ -85,6 +86,7 @@ const imageUploadFx = createEffect(async (file: File) => {
 export const mountCanvas = createEvent<{
   editor: CanvasEditor;
   container: HTMLElement;
+  viewport: HTMLElement;
 }>();
 
 export const imageUploadStarted = createEvent<File>();

@@ -47,8 +47,7 @@ export class CanvasEditor {
 
   constructor() {
     this.canvas = document.createElement('canvas');
-    this.canvas.className = 'shadow-2xl';
-    this.canvas.style.imageRendering = 'pixelated'; // Чтобы видеть пиксели при низком качестве
+    this.canvas.style.imageRendering = 'pixelated';
     const context = this.canvas.getContext('2d');
     if (!context) {
       throw new Error('Could not get canvas context');

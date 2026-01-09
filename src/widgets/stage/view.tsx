@@ -6,7 +6,7 @@ import { $image } from '~/entities/image';
 
 import { cn } from '~/shared/lib/cn';
 
-import { ImageCanvas } from './ui/image-canvas';
+import { ArtBoard, ImageCanvas } from './ui/image-canvas';
 
 export function CanvasStage() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -14,10 +14,12 @@ export function CanvasStage() {
   return (
     <div
       ref={containerRef}
-      className="flex h-full w-full items-center justify-center overflow-hidden bg-zinc-900"
+      className="flex h-full w-full items-center justify-center overflow-hidden bg-zinc-900 p-12"
     >
       <Wrapper>
-        <ImageCanvas />
+        <ArtBoard>
+          <ImageCanvas />
+        </ArtBoard>
       </Wrapper>
     </div>
   );
@@ -25,6 +27,7 @@ export function CanvasStage() {
 
 function Wrapper({ children }: { children: React.ReactNode }) {
   const image = useUnit($image);
+
   return (
     <>
       <div
@@ -35,7 +38,7 @@ function Wrapper({ children }: { children: React.ReactNode }) {
       >
         <p>Загрузите изображение для начала работы</p>
       </div>
-      <div className={cn('contents', !image && 'hidden')}>{children}</div>
+      <div className={cn(!image && 'hidden')}>{children}</div>
     </>
   );
 }

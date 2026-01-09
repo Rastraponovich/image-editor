@@ -9,7 +9,20 @@ export default defineConfig({
     port: 3000,
     open: true,
   },
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    react({
+      babel: {
+        babelrc: true,
+        plugins: [
+          [
+            'effector/babel-plugin',
+            { addLoc: true, debugSids: true, factories: ['patronum'] },
+          ],
+        ],
+      },
+    }),
+    tailwindcss(),
+  ],
   resolve: {
     alias: {
       '~': path.resolve(__dirname, './src'),

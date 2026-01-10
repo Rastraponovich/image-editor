@@ -1,6 +1,6 @@
 import { createEvent, createStore, restore, sample } from 'effector';
 
-import { $canvas, applyTransformFx, imageUploaded } from '~/entities/image';
+import { applyTransform, imageUploaded } from '~/entities/image';
 
 import {
   BUTTON_ZOOM_STEP,
@@ -108,6 +108,7 @@ sample({
 // Синхронизация сторов с инстансом редактора (CanvasEditor)
 sample({
   clock: [$zoom, $offset],
-  source: { editor: $canvas, zoom: $zoom, offset: $offset },
-  target: applyTransformFx,
+  source: { zoom: $zoom, offset: $offset },
+  fn: ({ zoom, offset }) => ({ zoom, offset }),
+  target: applyTransform,
 });

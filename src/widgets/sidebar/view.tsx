@@ -24,7 +24,7 @@ export function Sidebar() {
       <Header />
       <Filters />
       <div className="mt-auto pt-6 text-center text-xs text-zinc-600">
-        PixelCraft v{APP_VERSION} ({GIT_HASH})
+        Piclet v{APP_VERSION} ({GIT_HASH})
       </div>
     </aside>
   );

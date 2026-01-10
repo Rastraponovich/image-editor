@@ -10,7 +10,7 @@ export const getFullVersionString = () => {
  */
 export const logAppVersion = () => {
   console.groupCollapsed(
-    `%c PixelCraft %c v${APP_VERSION} `,
+    `%c Piclet %c v${APP_VERSION} `,
     'background: #3b82f6; color: #fff; border-radius: 3px 0 0 3px; padding: 2px 5px; font-weight: bold;',
     'background: #1e293b; color: #fff; border-radius: 0 3px 3px 0; padding: 2px 5px;',
   );

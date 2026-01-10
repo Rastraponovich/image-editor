@@ -337,7 +337,7 @@ export class CanvasEditor {
 }
 
 // Эффект для инициализации (привязки к DOM)
-export const mountCanvasFx = createEffect<
+const mountCanvasFx = createEffect<
   {
     container: HTMLElement;
     viewport: HTMLElement;
@@ -349,7 +349,7 @@ export const mountCanvasFx = createEffect<
 });
 
 // Эффект для удаления холста
-export const unmountCanvasFx = createEffect<CanvasEditor, void>(editor => {
+const unmountCanvasFx = createEffect<CanvasEditor, void>(editor => {
   editor.unmount();
 });
 
@@ -362,7 +362,7 @@ const updateCanvasImageFx = createEffect<
 });
 
 // Эффект для применения фильтров
-export const applyFiltersFx = createEffect<
+const applyFiltersFx = createEffect<
   {
     editor: CanvasEditor;
     filters: Map<FilterKey, number>;
@@ -376,7 +376,8 @@ export const applyFiltersFx = createEffect<
   editor.setFilters(filters);
 });
 
-export const applyTransformFx = createEffect<
+// Приватный эффект для применения трансформаций
+const applyTransformFx = createEffect<
   {
     editor: CanvasEditor;
     zoom: number;
@@ -399,7 +400,6 @@ const imageUploadFx = createEffect(async (file: File) => {
 
 // Events
 export const mountCanvas = createEvent<{
-  editor: CanvasEditor;
   container: HTMLElement;
   viewport: HTMLElement;
 }>();
@@ -413,7 +413,26 @@ export const resetFilters = createEvent();
 export const imageQualityChanged = createEvent<number>();
 export const gridToggled = createEvent<boolean>();
 
+// Публичное событие для применения трансформаций
+export const applyTransform = createEvent<{
+  zoom: number;
+  offset: { x: number; y: number };
+}>();
+
+// взоможно пригодится для создания базовых эффектов
+// function createBaseEffect(effect: Effect<any, any, any>) {
+//   return attach({
+//     source: $canvas,
+//     // eslint-disable-next-line @typescript-eslint/no-explicit-any
+//     mapParams: (params: any, canvas: CanvasEditor) => ({
+//       ...params,
+//       editor: canvas,
+//     }),
+//     effect,
+//   });
+// }
 export const $canvas = createStore<CanvasEditor>(new CanvasEditor());
+
 export const $filtersRef = createStore({
   ref: new Map<FilterKey, number>(
     Object.entries(INITIAL_FILTERS) as [FilterKey, number][],
@@ -467,6 +486,8 @@ sample({
 
 sample({
   clock: mountCanvas,
+  source: $canvas,
+  fn: (editor, { container, viewport }) => ({ container, viewport, editor }),
   target: mountCanvasFx,
 });
 
@@ -474,6 +495,14 @@ sample({
   clock: unmountCanvas,
   source: $canvas,
   target: unmountCanvasFx,
+});
+
+// Применение трансформаций через публичное событие
+sample({
+  clock: applyTransform,
+  source: $canvas,
+  fn: (editor, { zoom, offset }) => ({ editor, zoom, offset }),
+  target: applyTransformFx,
 });
 
 sample({ clock: imageUploadStarted, target: imageUploadFx });

@@ -21,8 +21,9 @@ jobs:
   deploy:
     name: Deploy
     runs-on: ubuntu-latest
-    # Deploy only if CI completed successfully and it was triggered by push to master
-    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' }}
+    # Deploy only if CI completed successfully
+    # Filtering by master branch is already done in workflow_run.branches
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
 
     steps:
       - name: Checkout code

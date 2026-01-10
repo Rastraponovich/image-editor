@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [master, dev]
   push:
-    branches: [master, dev]
+    branches: [master] # Only master to trigger deploy after merge
 
 permissions:
   contents: read

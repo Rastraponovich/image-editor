@@ -12,12 +12,7 @@ import {
   INITIAL_OFFSET,
   INITIAL_ZOOM,
 } from './constants';
-import {
-  applyFiltersToContext,
-  calculateFitDimensions,
-  createFilterString,
-  drawGrid,
-} from './lib';
+import { calculateFitDimensions, createFilterString, drawGrid } from './lib';
 import { FilterKey, type Filters, type PointRecord } from './types';
 
 /**
@@ -246,23 +241,31 @@ export class CanvasEditor {
   }
 
   /**
-   * Основной метод отрисовки. Вызывает применение фильтров и отрисовку сетки.
+   * Приватный метод отрисовки на заданном контексте.
+   * Содержит общую логику отрисовки для render() и toDataURL().
+   * @param ctx - Контекст для отрисовки
+   * @param width - Ширина области отрисовки
+   * @param height - Высота области отрисовки
+   * @param includeGrid - Включать ли сетку в отрисовку
    */
-  public render() {
-    if (!this.img || !this.ctx) {
+  private draw(
+    ctx: CanvasRenderingContext2D,
+    width: number,
+    height: number,
+    includeGrid: boolean,
+  ) {
+    if (!this.img) {
       return;
     }
 
-    const { width, height } = this.canvas;
-
     // 1. Рисуем белую подложку (холст)
-    this.ctx.save();
-    this.ctx.clearRect(0, 0, width, height);
-    this.ctx.fillStyle = '#ffffff';
-    this.ctx.fillRect(0, 0, width, height);
+    ctx.save();
+    ctx.clearRect(0, 0, width, height);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, width, height);
 
     // 2. Рисуем изображение с учетом трансформаций (зум и пан внутри кадра)
-    this.ctx.filter = createFilterString(this.filters);
+    ctx.filter = createFilterString(this.filters);
 
     // Вычисляем размеры отрисовки
     const drawWidth = width * this.zoom;
@@ -272,14 +275,26 @@ export class CanvasEditor {
     const x = (width - drawWidth) / 2 + this.offset.x;
     const y = (height - drawHeight) / 2 + this.offset.y;
 
-    this.ctx.drawImage(this.img, x, y, drawWidth, drawHeight);
-    this.ctx.filter = 'none';
-    this.ctx.restore();
+    ctx.drawImage(this.img, x, y, drawWidth, drawHeight);
+    ctx.filter = 'none';
+    ctx.restore();
 
     // 3. Сетка рисуется ПОВЕРХ всего, но она привязана к границам подложки (кадра)
-    if (this.isGridVisible) {
-      drawGrid(this.ctx, width, height);
+    if (includeGrid) {
+      drawGrid(ctx, width, height);
     }
+  }
+
+  /**
+   * Основной метод отрисовки. Вызывает применение фильтров и отрисовку сетки.
+   */
+  public render() {
+    if (!this.img || !this.ctx) {
+      return;
+    }
+
+    const { width, height } = this.canvas;
+    this.draw(this.ctx, width, height, this.isGridVisible);
   }
 
   /**
@@ -290,19 +305,21 @@ export class CanvasEditor {
   }
 
   /**
-   * Экспортирует текущее состояние в dataURL с сохранением оригинальных размеров изображения.
+   * Экспортирует текущий кадр (viewport) в dataURL.
+   * Сохраняет именно то, что видит пользователь: кадр с учетом зума, пана и фильтров.
    * @param type - MIME тип (image/jpeg, image/png)
    * @param quality - Качество сжатия (0..1)
    */
   public toDataURL(type = 'image/jpeg', quality = 1): string {
-    if (!this.img) {
+    if (!this.img || !this.ctx) {
       return '';
     }
 
-    const width = this.img.naturalWidth;
-    const height = this.img.naturalHeight;
+    // Используем размеры текущего кадра (viewport), а не оригинального изображения
+    const width = this.canvas.width;
+    const height = this.canvas.height;
 
-    // Используем временный холст для экспорта в оригинальном разрешении
+    // Создаем временный холст с размерами кадра
     const tempCanvas = document.createElement('canvas');
     tempCanvas.width = width;
     tempCanvas.height = height;
@@ -312,13 +329,8 @@ export class CanvasEditor {
       return '';
     }
 
-    applyFiltersToContext(
-      tempCtx,
-      this.img,
-      this.filters,
-      tempCanvas.width,
-      tempCanvas.height,
-    );
+    // Отрисовываем текущий кадр БЕЗ сетки (сетка - это только UI-направляющая)
+    this.draw(tempCtx, width, height, false);
 
     return tempCanvas.toDataURL(type, quality);
   }

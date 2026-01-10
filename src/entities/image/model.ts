@@ -6,39 +6,14 @@ import {
   sample,
 } from 'effector';
 
-import { applyFiltersToContext, calculateFitDimensions, drawGrid } from './lib';
-
-export const FilterKey = {
-  brightness: 'brightness',
-  contrast: 'contrast',
-  saturation: 'saturation',
-  blur: 'blur',
-  sepia: 'sepia',
-  grayscale: 'grayscale',
-  hue: 'hue',
-} as const;
-
-export type FilterKey = keyof typeof FilterKey;
-
-export type Filters = {
-  hue: number;
-  blur: number;
-  sepia: number;
-  contrast: number;
-  grayscale: number;
-  brightness: number;
-  saturation: number;
-};
-
-export const initialFilters: Filters = {
-  [FilterKey.hue]: 0,
-  [FilterKey.blur]: 0,
-  [FilterKey.sepia]: 0,
-  [FilterKey.grayscale]: 0,
-  [FilterKey.contrast]: 100,
-  [FilterKey.saturation]: 100,
-  [FilterKey.brightness]: 100,
-};
+import {
+  DEFAULT_QUALITY,
+  INITIAL_FILTERS,
+  INITIAL_OFFSET,
+  INITIAL_ZOOM,
+} from './constants';
+import { calculateFitDimensions, createFilterString, drawGrid } from './lib';
+import { FilterKey, type Filters, type PointRecord } from './types';
 
 /**
  * Класс управления редактором изображений на базе Canvas.
@@ -52,8 +27,10 @@ export class CanvasEditor {
   private viewport: HTMLElement | null = null;
   private resizeObserver: ResizeObserver | null = null;
   private filters: Map<FilterKey, number> = new Map();
-  private quality: number = 100;
+  private quality: number = DEFAULT_QUALITY;
   private isGridVisible: boolean = false;
+  private zoom: number = INITIAL_ZOOM;
+  private offset: PointRecord = INITIAL_OFFSET;
 
   /**
    * Конструктор редактора.
@@ -205,6 +182,47 @@ export class CanvasEditor {
   }
 
   /**
+   * Устанавливает масштаб.
+   * @param zoom - Коэффициент масштабирования
+   */
+  public setZoom(zoom: number) {
+    this.zoom = zoom;
+    this.updateTransform();
+  }
+
+  /**
+   * Устанавливает смещение.
+   * @param offset - Объект со смещением x и y
+   */
+  public setOffset(offset: { x: number; y: number }) {
+    this.offset = offset;
+    this.updateTransform();
+  }
+
+  /**
+   * Возвращает текущий зум.
+   */
+  public getZoom() {
+    return this.zoom;
+  }
+
+  /**
+   * Возвращает текущее смещение.
+   */
+  public getOffset() {
+    return this.offset;
+  }
+
+  /**
+   * Обновляет CSS-трансформацию холста.
+   */
+  private updateTransform() {
+    // В профессиональной модели мы не трансформируем сам элемент canvas через CSS,
+    // чтобы сетка и границы оставались четкими. Мы будем использовать внутренние координаты в render().
+    this.render();
+  }
+
+  /**
    * Устанавливает визуальные (CSS) и физические размеры холста.
    * @param width - Визуальная ширина
    * @param height - Визуальная высота
@@ -218,7 +236,53 @@ export class CanvasEditor {
     this.canvas.width = width * (this.quality / 100);
     this.canvas.height = height * (this.quality / 100);
 
+    this.updateTransform();
     this.render();
+  }
+
+  /**
+   * Приватный метод отрисовки на заданном контексте.
+   * Содержит общую логику отрисовки для render() и toDataURL().
+   * @param ctx - Контекст для отрисовки
+   * @param width - Ширина области отрисовки
+   * @param height - Высота области отрисовки
+   * @param includeGrid - Включать ли сетку в отрисовку
+   */
+  private draw(
+    ctx: CanvasRenderingContext2D,
+    width: number,
+    height: number,
+    includeGrid: boolean,
+  ) {
+    if (!this.img) {
+      return;
+    }
+
+    // 1. Рисуем белую подложку (холст)
+    ctx.save();
+    ctx.clearRect(0, 0, width, height);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, width, height);
+
+    // 2. Рисуем изображение с учетом трансформаций (зум и пан внутри кадра)
+    ctx.filter = createFilterString(this.filters);
+
+    // Вычисляем размеры отрисовки
+    const drawWidth = width * this.zoom;
+    const drawHeight = height * this.zoom;
+
+    // Центрируем и добавляем офсет
+    const x = (width - drawWidth) / 2 + this.offset.x;
+    const y = (height - drawHeight) / 2 + this.offset.y;
+
+    ctx.drawImage(this.img, x, y, drawWidth, drawHeight);
+    ctx.filter = 'none';
+    ctx.restore();
+
+    // 3. Сетка рисуется ПОВЕРХ всего, но она привязана к границам подложки (кадра)
+    if (includeGrid) {
+      drawGrid(ctx, width, height);
+    }
   }
 
   /**
@@ -229,17 +293,8 @@ export class CanvasEditor {
       return;
     }
 
-    applyFiltersToContext(
-      this.ctx,
-      this.img,
-      this.filters,
-      this.canvas.width,
-      this.canvas.height,
-    );
-
-    if (this.isGridVisible) {
-      drawGrid(this.ctx, this.canvas.width, this.canvas.height);
-    }
+    const { width, height } = this.canvas;
+    this.draw(this.ctx, width, height, this.isGridVisible);
   }
 
   /**
@@ -250,19 +305,21 @@ export class CanvasEditor {
   }
 
   /**
-   * Экспортирует текущее состояние в dataURL с сохранением оригинальных размеров изображения.
+   * Экспортирует текущий кадр (viewport) в dataURL.
+   * Сохраняет именно то, что видит пользователь: кадр с учетом зума, пана и фильтров.
    * @param type - MIME тип (image/jpeg, image/png)
    * @param quality - Качество сжатия (0..1)
    */
   public toDataURL(type = 'image/jpeg', quality = 1): string {
-    if (!this.img) {
+    if (!this.img || !this.ctx) {
       return '';
     }
 
-    const width = this.img.naturalWidth;
-    const height = this.img.naturalHeight;
+    // Используем размеры текущего кадра (viewport), а не оригинального изображения
+    const width = this.canvas.width;
+    const height = this.canvas.height;
 
-    // Используем временный холст для экспорта в оригинальном разрешении
+    // Создаем временный холст с размерами кадра
     const tempCanvas = document.createElement('canvas');
     tempCanvas.width = width;
     tempCanvas.height = height;
@@ -272,20 +329,15 @@ export class CanvasEditor {
       return '';
     }
 
-    applyFiltersToContext(
-      tempCtx,
-      this.img,
-      this.filters,
-      tempCanvas.width,
-      tempCanvas.height,
-    );
+    // Отрисовываем текущий кадр БЕЗ сетки (сетка - это только UI-направляющая)
+    this.draw(tempCtx, width, height, false);
 
     return tempCanvas.toDataURL(type, quality);
   }
 }
 
 // Эффект для инициализации (привязки к DOM)
-export const mountCanvasFx = createEffect<
+const mountCanvasFx = createEffect<
   {
     container: HTMLElement;
     viewport: HTMLElement;
@@ -294,6 +346,11 @@ export const mountCanvasFx = createEffect<
   void
 >(({ container, viewport, editor }) => {
   editor.mount(container, viewport);
+});
+
+// Эффект для удаления холста
+const unmountCanvasFx = createEffect<CanvasEditor, void>(editor => {
+  editor.unmount();
 });
 
 // Эффект для обновления картинки
@@ -305,7 +362,7 @@ const updateCanvasImageFx = createEffect<
 });
 
 // Эффект для применения фильтров
-export const applyFiltersFx = createEffect<
+const applyFiltersFx = createEffect<
   {
     editor: CanvasEditor;
     filters: Map<FilterKey, number>;
@@ -319,6 +376,19 @@ export const applyFiltersFx = createEffect<
   editor.setFilters(filters);
 });
 
+// Приватный эффект для применения трансформаций
+const applyTransformFx = createEffect<
+  {
+    editor: CanvasEditor;
+    zoom: number;
+    offset: { x: number; y: number };
+  },
+  void
+>(({ editor, zoom, offset }) => {
+  editor.setZoom(zoom);
+  editor.setOffset(offset);
+});
+
 export const filtersChanged = createEvent<{
   id: FilterKey;
   value: Filters[FilterKey];
@@ -330,10 +400,11 @@ const imageUploadFx = createEffect(async (file: File) => {
 
 // Events
 export const mountCanvas = createEvent<{
-  editor: CanvasEditor;
   container: HTMLElement;
   viewport: HTMLElement;
 }>();
+
+export const unmountCanvas = createEvent();
 
 export const imageUploadStarted = createEvent<File>();
 export const imageUploaded = createEvent<string>();
@@ -342,19 +413,42 @@ export const resetFilters = createEvent();
 export const imageQualityChanged = createEvent<number>();
 export const gridToggled = createEvent<boolean>();
 
+// Публичное событие для применения трансформаций
+export const applyTransform = createEvent<{
+  zoom: number;
+  offset: { x: number; y: number };
+}>();
+
+// взоможно пригодится для создания базовых эффектов
+// function createEditorEffect<TParams, TResult>(
+//   handler: (editor: CanvasEditor, params: TParams) => TResult
+// ) {
+//   const baseFx = createEffect<{ editor: CanvasEditor } & TParams, TResult>(
+//     ({ editor, ...params }) => handler(editor, params as TParams)
+//   );
+
+//   return attach({
+//     effect: baseFx,
+//     source: $canvas,
+//     mapParams: (params: TParams, editor) => ({ editor, ...params }),
+//   });
+// }
+
 export const $canvas = createStore<CanvasEditor>(new CanvasEditor());
+
 export const $filtersRef = createStore({
   ref: new Map<FilterKey, number>(
-    Object.entries(initialFilters) as [FilterKey, number][],
+    Object.entries(INITIAL_FILTERS) as [FilterKey, number][],
   ),
 });
 
 export const $imageRaw = restore(imageUploadStarted, null);
 export const $image = restore(imageUploaded, null);
 
-export const $imageQuality = restore(imageQualityChanged, 100).reset(
-  resetFilters,
-);
+export const $imageQuality = restore(
+  imageQualityChanged,
+  DEFAULT_QUALITY,
+).reset(resetFilters);
 
 export const $isGridVisible = restore(gridToggled, false);
 
@@ -380,7 +474,7 @@ sample({
 
   fn: ({ ref }) => {
     ref.clear();
-    Object.entries(initialFilters).forEach(([key, value]) => {
+    Object.entries(INITIAL_FILTERS).forEach(([key, value]) => {
       ref.set(key as FilterKey, value);
     });
     return { ref };
@@ -395,7 +489,23 @@ sample({
 
 sample({
   clock: mountCanvas,
+  source: $canvas,
+  fn: (editor, { container, viewport }) => ({ container, viewport, editor }),
   target: mountCanvasFx,
+});
+
+sample({
+  clock: unmountCanvas,
+  source: $canvas,
+  target: unmountCanvasFx,
+});
+
+// Применение трансформаций через публичное событие
+sample({
+  clock: applyTransform,
+  source: $canvas,
+  fn: (editor, { zoom, offset }) => ({ editor, zoom, offset }),
+  target: applyTransformFx,
 });
 
 sample({ clock: imageUploadStarted, target: imageUploadFx });

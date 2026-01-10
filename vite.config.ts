@@ -16,38 +16,46 @@ const getGitHash = () => {
 };
 
 // https://vite.dev/config/
-export default defineConfig({
-  define: {
-    __APP_VERSION__: JSON.stringify(pkg.version),
-    __BUILD_DATE__: JSON.stringify(new Date().toISOString()),
-    __GIT_HASH__: JSON.stringify(getGitHash()),
-  },
-  server: {
-    port: 3000,
-    open: true,
-  },
-  plugins: [
-    react({
-      babel: {
-        babelrc: true,
-        plugins: [
-          [
-            'effector/babel-plugin',
-            { addLoc: true, debugSids: true, factories: ['patronum'] },
-          ],
-        ],
-      },
-    }),
-    tailwindcss(),
-  ],
-  resolve: {
-    alias: {
-      '~': path.resolve(__dirname, './src'),
+export default defineConfig(({ mode }) => {
+  const isDev = mode === 'development';
+  const isProd = mode === 'production';
+
+  // Base path из переменной окружения или дефолтное значение
+  const basePath =
+    process.env.VITE_BASE_PATH || (isProd ? '/image-editor' : '/');
+
+  return {
+    base: basePath,
+    define: {
+      __APP_VERSION__: JSON.stringify(pkg.version),
+      __BUILD_DATE__: JSON.stringify(new Date().toISOString()),
+      __GIT_HASH__: JSON.stringify(getGitHash()),
     },
-  },
-  test: {
-    globals: true,
-    environment: 'jsdom',
-    setupFiles: './src/shared/lib/test-setup.ts',
-  },
+    server: { port: 3000, open: isDev },
+    build: { sourcemap: isDev },
+    plugins: [
+      react({
+        babel: {
+          babelrc: true,
+          plugins: [
+            [
+              'effector/babel-plugin',
+              { addLoc: true, debugSids: true, factories: [] },
+            ],
+          ],
+        },
+      }),
+      tailwindcss(),
+    ],
+    resolve: {
+      alias: {
+        '~': path.resolve(__dirname, './src'),
+      },
+    },
+    test: {
+      globals: true,
+      environment: 'jsdom',
+      setupFiles: './src/shared/lib/test-setup.ts',
+    },
+  };
 });

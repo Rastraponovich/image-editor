@@ -150,4 +150,119 @@ describe('CanvasEditor', () => {
       expect(canvas.height).toBe(300);
     });
   });
+
+  describe('Export (toDataURL)', () => {
+    beforeEach(() => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (editor as any).img = {
+        naturalWidth: 2000,
+        naturalHeight: 1500,
+      };
+      editor.setDimensions(500, 300);
+    });
+
+    it('should export viewport frame, not original image dimensions', () => {
+      const canvas = editor.getCanvas();
+      const tempCanvas = document.createElement('canvas');
+      const createElementSpy = vi.spyOn(document, 'createElement');
+      createElementSpy.mockReturnValueOnce(tempCanvas);
+
+      const getContextSpy = vi.spyOn(tempCanvas, 'getContext');
+      const mockCtx = {
+        save: vi.fn(),
+        restore: vi.fn(),
+        clearRect: vi.fn(),
+        fillRect: vi.fn(),
+        drawImage: vi.fn(),
+        filter: '',
+      };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      getContextSpy.mockReturnValue(mockCtx as any);
+
+      editor.toDataURL();
+
+      // Проверяем, что временный canvas создан с размерами кадра, а не оригинала
+      expect(tempCanvas.width).toBe(canvas.width);
+      expect(tempCanvas.height).toBe(canvas.height);
+    });
+
+    it('should export frame without grid even if grid is visible', () => {
+      // Устанавливаем сетку видимой через приватное свойство, чтобы не вызывать render
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (editor as any).isGridVisible = true;
+
+      // Создаем мок для временного canvas в toDataURL
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = 500;
+      tempCanvas.height = 300;
+      const mockTempCtx = {
+        save: vi.fn(),
+        restore: vi.fn(),
+        clearRect: vi.fn(),
+        fillRect: vi.fn(),
+        drawImage: vi.fn(),
+        filter: '',
+        beginPath: vi.fn(),
+        moveTo: vi.fn(),
+        lineTo: vi.fn(),
+        stroke: vi.fn(),
+      };
+
+      vi.spyOn(document, 'createElement').mockReturnValue(tempCanvas);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      vi.spyOn(tempCanvas, 'getContext').mockReturnValue(mockTempCtx as any);
+      vi.spyOn(tempCanvas, 'toDataURL').mockReturnValue(
+        'data:image/jpeg;base64,...',
+      );
+
+      editor.toDataURL();
+
+      // Проверяем, что drawImage был вызван (изображение отрисовано)
+      expect(mockTempCtx.drawImage).toHaveBeenCalled();
+      // Проверяем, что сетка НЕ была нарисована (нет вызовов beginPath для сетки)
+      expect(mockTempCtx.beginPath).not.toHaveBeenCalled();
+    });
+
+    it('should account for zoom and offset in export', () => {
+      editor.setZoom(2);
+      editor.setOffset({ x: 50, y: 30 });
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = 500;
+      tempCanvas.height = 300;
+      const getContextSpy = vi.spyOn(tempCanvas, 'getContext');
+      const mockCtx = {
+        save: vi.fn(),
+        restore: vi.fn(),
+        clearRect: vi.fn(),
+        fillRect: vi.fn(),
+        drawImage: vi.fn(),
+        filter: '',
+      };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      getContextSpy.mockReturnValue(mockCtx as any);
+      vi.spyOn(document, 'createElement').mockReturnValue(tempCanvas);
+      vi.spyOn(tempCanvas, 'toDataURL').mockReturnValue(
+        'data:image/jpeg;base64,...',
+      );
+
+      editor.toDataURL();
+
+      // Проверяем, что drawImage вызван с учетом зума и офсета
+      expect(mockCtx.drawImage).toHaveBeenCalled();
+      const drawImageCall = mockCtx.drawImage.mock.calls[0];
+      // x = (width - drawWidth) / 2 + offset.x = (500 - 1000) / 2 + 50 = -200
+      // y = (height - drawHeight) / 2 + offset.y = (300 - 600) / 2 + 30 = -120
+      expect(drawImageCall[1]).toBe(-200); // x координата
+      expect(drawImageCall[2]).toBe(-120); // y координата
+      expect(drawImageCall[3]).toBe(1000); // drawWidth = 500 * 2
+      expect(drawImageCall[4]).toBe(600); // drawHeight = 300 * 2
+    });
+
+    it('should return empty string if image is not loaded', () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (editor as any).img = null;
+      const result = editor.toDataURL();
+      expect(result).toBe('');
+    });
+  });
 });

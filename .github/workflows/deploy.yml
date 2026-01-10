@@ -35,6 +35,8 @@ jobs:
     needs: wait-for-ci
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
       - name: Setup
         uses: ./.github/actions/setup
 

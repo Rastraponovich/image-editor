@@ -27,4 +27,9 @@
   button {
     cursor: pointer;
   }
+
+  img {
+    pointer-events: none;
+    user-select: none;
+  }
 }

@@ -12,6 +12,7 @@ export {
   mountCanvas,
   resetFilters,
   unmountCanvas,
+  imageUploadBaseFx,
 } from './model';
 
 // Stores
@@ -31,3 +32,6 @@ export { INITIAL_FILTERS } from './constants';
 // Types
 export { FilterKey } from './types';
 export type { Filters, PointRecord } from './types';
+
+// Utils
+export { loadImageFromUrl } from './lib';

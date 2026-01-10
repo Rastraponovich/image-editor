@@ -8,11 +8,12 @@ interface SliderProps {
   unit?: string;
   step?: number;
   onChange: (value: number) => void;
+  onDoubleClick?: () => void;
 }
 
 export const Slider = forwardRef<HTMLInputElement, SliderProps>(
   (props, ref) => {
-    const { label, value, onChange, unit = '', ...rest } = props;
+    const { label, value, onChange, onDoubleClick, unit = '', ...rest } = props;
     const id = useId();
 
     return (
@@ -35,6 +36,7 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
           type="range"
           value={value}
           onChange={event => onChange(Number(event.target.value))}
+          onDoubleClick={onDoubleClick}
           className="h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-zinc-700 accent-blue-500 focus-within:bg-green-400 disabled:cursor-default"
         />
       </div>

@@ -420,17 +420,20 @@ export const applyTransform = createEvent<{
 }>();
 
 // взоможно пригодится для создания базовых эффектов
-// function createBaseEffect(effect: Effect<any, any, any>) {
+// function createEditorEffect<TParams, TResult>(
+//   handler: (editor: CanvasEditor, params: TParams) => TResult
+// ) {
+//   const baseFx = createEffect<{ editor: CanvasEditor } & TParams, TResult>(
+//     ({ editor, ...params }) => handler(editor, params as TParams)
+//   );
+
 //   return attach({
+//     effect: baseFx,
 //     source: $canvas,
-//     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-//     mapParams: (params: any, canvas: CanvasEditor) => ({
-//       ...params,
-//       editor: canvas,
-//     }),
-//     effect,
+//     mapParams: (params: TParams, editor) => ({ editor, ...params }),
 //   });
 // }
+
 export const $canvas = createStore<CanvasEditor>(new CanvasEditor());
 
 export const $filtersRef = createStore({

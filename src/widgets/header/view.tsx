@@ -14,7 +14,7 @@ export function Header() {
     <header className="flex h-16 shrink-0 items-center justify-between border-b border-zinc-800 bg-zinc-950 px-6">
       <div className="flex items-center gap-2 text-xl font-bold text-zinc-100">
         <ImageIcon className="text-blue-500" />
-        <h1>PixelCraft</h1>
+        <h1>Piclet</h1>
       </div>
 
       <div className="flex items-center gap-4">

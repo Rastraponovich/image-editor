@@ -21,6 +21,7 @@
     ]
   },
   "dependencies": {
+    "@withease/factories": "^1.0.5",
     "clsx": "^2.1.1",
     "effector": "^23.4.4",
     "effector-react": "^23.3.0",

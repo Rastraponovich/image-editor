@@ -1,1 +1,2 @@
-export { Dialog, OpenButton } from './view';
+export { Dialog, UploadButton } from './view';
+export { OpenButton } from './ui';

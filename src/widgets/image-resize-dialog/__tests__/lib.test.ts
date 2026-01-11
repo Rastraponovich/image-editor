@@ -1,8 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  calculateProportionalDimension,
   getImageSizesFromBlob,
   getImageSizesFromUrl,
+  prepareResizeParams,
   resizeImageFromUrl,
 } from '../lib';
 
@@ -396,7 +398,11 @@ describe('resizeImageFromUrl', () => {
     const url = 'blob:http://localhost/test';
     const percent = 50;
 
-    const result = await resizeImageFromUrl(url, percent);
+    const result = await resizeImageFromUrl({
+      mode: 'percent',
+      imageUrl: url,
+      percent,
+    });
 
     expect(result).toBeInstanceOf(Blob);
     expect(result.type).toBe('image/jpeg');
@@ -427,7 +433,11 @@ describe('resizeImageFromUrl', () => {
     const url = 'blob:http://localhost/test';
     const percent = 50;
 
-    await resizeImageFromUrl(url, percent);
+    await resizeImageFromUrl({
+      mode: 'percent',
+      imageUrl: url,
+      percent,
+    });
 
     // Проверяем, что drawImage был вызван с правильными размерами
     expect(mockContext.drawImage).toHaveBeenCalledWith(
@@ -460,7 +470,11 @@ describe('resizeImageFromUrl', () => {
     const url = 'blob:http://localhost/test';
     const percent = 150;
 
-    await resizeImageFromUrl(url, percent);
+    await resizeImageFromUrl({
+      mode: 'percent',
+      imageUrl: url,
+      percent,
+    });
 
     // Проверяем, что drawImage был вызван с правильными размерами
     expect(mockContext.drawImage).toHaveBeenCalledWith(
@@ -494,9 +508,13 @@ describe('resizeImageFromUrl', () => {
     const url = 'blob:http://localhost/test';
     const percent = 50;
 
-    await expect(resizeImageFromUrl(url, percent)).rejects.toThrow(
-      'Failed to load image',
-    );
+    await expect(
+      resizeImageFromUrl({
+        mode: 'percent',
+        imageUrl: url,
+        percent,
+      }),
+    ).rejects.toThrow('Failed to load image');
   });
 
   it('должна выбрасывать ошибку если не удалось получить canvas context', async () => {
@@ -505,9 +523,13 @@ describe('resizeImageFromUrl', () => {
     const url = 'blob:http://localhost/test';
     const percent = 50;
 
-    await expect(resizeImageFromUrl(url, percent)).rejects.toThrow(
-      'Failed to get canvas context',
-    );
+    await expect(
+      resizeImageFromUrl({
+        mode: 'percent',
+        imageUrl: url,
+        percent,
+      }),
+    ).rejects.toThrow('Failed to get canvas context');
   });
 
   it('должна выбрасывать ошибку если toBlob вернул null', async () => {
@@ -518,8 +540,375 @@ describe('resizeImageFromUrl', () => {
     const url = 'blob:http://localhost/test';
     const percent = 50;
 
-    await expect(resizeImageFromUrl(url, percent)).rejects.toThrow(
-      'Failed to create blob from canvas',
+    await expect(
+      resizeImageFromUrl({
+        mode: 'percent',
+        imageUrl: url,
+        percent,
+      }),
+    ).rejects.toThrow('Failed to create blob from canvas');
+  });
+});
+
+describe('calculateProportionalDimension', () => {
+  describe('изменение ширины (вычисление высоты)', () => {
+    it('должна вычислять высоту при изменении ширины для landscape изображения', () => {
+      const originalWidth = 1920;
+      const originalHeight = 1080;
+      const newWidth = 960;
+
+      const result = calculateProportionalDimension(
+        originalWidth,
+        originalHeight,
+        newWidth,
+        'width',
+      );
+
+      // 960 / (1920 / 1080) = 960 / 1.777... = 540
+      expect(result).toBe(540);
+    });
+
+    it('должна вычислять высоту при изменении ширины для portrait изображения', () => {
+      const originalWidth = 800;
+      const originalHeight = 1200;
+      const newWidth = 400;
+
+      const result = calculateProportionalDimension(
+        originalWidth,
+        originalHeight,
+        newWidth,
+        'width',
+      );
+
+      // 400 / (800 / 1200) = 400 / 0.666... = 600
+      expect(result).toBe(600);
+    });
+
+    it('должна вычислять высоту для квадратного изображения', () => {
+      const originalWidth = 1000;
+      const originalHeight = 1000;
+      const newWidth = 500;
+
+      const result = calculateProportionalDimension(
+        originalWidth,
+        originalHeight,
+        newWidth,
+        'width',
+      );
+
+      // 500 / (1000 / 1000) = 500 / 1 = 500
+      expect(result).toBe(500);
+    });
+
+    it('должна округлять результат до целого числа', () => {
+      const originalWidth = 1000;
+      const originalHeight = 750;
+      const newWidth = 333;
+
+      const result = calculateProportionalDimension(
+        originalWidth,
+        originalHeight,
+        newWidth,
+        'width',
+      );
+
+      // 333 / (1000 / 750) = 333 / 1.333... = 249.75 -> 250
+      expect(result).toBe(250);
+      expect(Number.isInteger(result)).toBe(true);
+    });
+  });
+
+  describe('изменение высоты (вычисление ширины)', () => {
+    it('должна вычислять ширину при изменении высоты для landscape изображения', () => {
+      const originalWidth = 1920;
+      const originalHeight = 1080;
+      const newHeight = 540;
+
+      const result = calculateProportionalDimension(
+        originalWidth,
+        originalHeight,
+        newHeight,
+        'height',
+      );
+
+      // 540 * (1920 / 1080) = 540 * 1.777... = 960
+      expect(result).toBe(960);
+    });
+
+    it('должна вычислять ширину при изменении высоты для portrait изображения', () => {
+      const originalWidth = 800;
+      const originalHeight = 1200;
+      const newHeight = 600;
+
+      const result = calculateProportionalDimension(
+        originalWidth,
+        originalHeight,
+        newHeight,
+        'height',
+      );
+
+      // 600 * (800 / 1200) = 600 * 0.666... = 400
+      expect(result).toBe(400);
+    });
+
+    it('должна вычислять ширину для квадратного изображения', () => {
+      const originalWidth = 1000;
+      const originalHeight = 1000;
+      const newHeight = 500;
+
+      const result = calculateProportionalDimension(
+        originalWidth,
+        originalHeight,
+        newHeight,
+        'height',
+      );
+
+      // 500 * (1000 / 1000) = 500 * 1 = 500
+      expect(result).toBe(500);
+    });
+
+    it('должна округлять результат до целого числа', () => {
+      const originalWidth = 1000;
+      const originalHeight = 750;
+      const newHeight = 250;
+
+      const result = calculateProportionalDimension(
+        originalWidth,
+        originalHeight,
+        newHeight,
+        'height',
+      );
+
+      // 250 * (1000 / 750) = 250 * 1.333... = 333.33... -> 333
+      expect(result).toBe(333);
+      expect(Number.isInteger(result)).toBe(true);
+    });
+  });
+
+  describe('граничные случаи', () => {
+    it('должна возвращать changedValue если originalWidth равен 0', () => {
+      const originalWidth = 0;
+      const originalHeight = 1080;
+      const changedValue = 500;
+
+      const resultWidth = calculateProportionalDimension(
+        originalWidth,
+        originalHeight,
+        changedValue,
+        'width',
+      );
+      const resultHeight = calculateProportionalDimension(
+        originalWidth,
+        originalHeight,
+        changedValue,
+        'height',
+      );
+
+      expect(resultWidth).toBe(changedValue);
+      expect(resultHeight).toBe(changedValue);
+    });
+
+    it('должна возвращать changedValue если originalHeight равен 0', () => {
+      const originalWidth = 1920;
+      const originalHeight = 0;
+      const changedValue = 500;
+
+      const resultWidth = calculateProportionalDimension(
+        originalWidth,
+        originalHeight,
+        changedValue,
+        'width',
+      );
+      const resultHeight = calculateProportionalDimension(
+        originalWidth,
+        originalHeight,
+        changedValue,
+        'height',
+      );
+
+      expect(resultWidth).toBe(changedValue);
+      expect(resultHeight).toBe(changedValue);
+    });
+
+    it('должна возвращать changedValue если оба размера равны 0', () => {
+      const originalWidth = 0;
+      const originalHeight = 0;
+      const changedValue = 500;
+
+      const resultWidth = calculateProportionalDimension(
+        originalWidth,
+        originalHeight,
+        changedValue,
+        'width',
+      );
+      const resultHeight = calculateProportionalDimension(
+        originalWidth,
+        originalHeight,
+        changedValue,
+        'height',
+      );
+
+      expect(resultWidth).toBe(changedValue);
+      expect(resultHeight).toBe(changedValue);
+    });
+  });
+
+  describe('различные пропорции', () => {
+    it('должна корректно работать с очень широким изображением (16:9)', () => {
+      const originalWidth = 3840;
+      const originalHeight = 2160;
+      const newWidth = 1920;
+
+      const result = calculateProportionalDimension(
+        originalWidth,
+        originalHeight,
+        newWidth,
+        'width',
+      );
+
+      // 1920 / (3840 / 2160) = 1920 / 1.777... = 1080
+      expect(result).toBe(1080);
+    });
+
+    it('должна корректно работать с очень высоким изображением (9:16)', () => {
+      const originalWidth = 1080;
+      const originalHeight = 1920;
+      const newHeight = 960;
+
+      const result = calculateProportionalDimension(
+        originalWidth,
+        originalHeight,
+        newHeight,
+        'height',
+      );
+
+      // 960 * (1080 / 1920) = 960 * 0.5625 = 540
+      expect(result).toBe(540);
+    });
+
+    it('должна корректно работать с небольшими значениями', () => {
+      const originalWidth = 100;
+      const originalHeight = 75;
+      const newWidth = 50;
+
+      const result = calculateProportionalDimension(
+        originalWidth,
+        originalHeight,
+        newWidth,
+        'width',
+      );
+
+      // 50 / (100 / 75) = 50 / 1.333... = 37.5 -> 38
+      expect(result).toBe(38);
+    });
+
+    it('должна корректно работать с большими значениями', () => {
+      const originalWidth = 10000;
+      const originalHeight = 5000;
+      const newWidth = 5000;
+
+      const result = calculateProportionalDimension(
+        originalWidth,
+        originalHeight,
+        newWidth,
+        'width',
+      );
+
+      // 5000 / (10000 / 5000) = 5000 / 2 = 2500
+      expect(result).toBe(2500);
+    });
+  });
+});
+
+describe('prepareResizeParams', () => {
+  it('должна возвращать параметры для режима процентов', () => {
+    const imageUrl = 'blob:http://localhost/test';
+    const mode = 'percent';
+    const percent = 150;
+    const width = 1920;
+    const height = 1080;
+
+    const result = prepareResizeParams(imageUrl, mode, percent, width, height);
+
+    expect(result).toEqual({
+      mode: 'percent',
+      imageUrl,
+      percent,
+    });
+  });
+
+  it('должна возвращать параметры для режима размеров', () => {
+    const imageUrl = 'blob:http://localhost/test';
+    const mode = 'dimensions';
+    const percent = 100;
+    const width = 1920;
+    const height = 1080;
+
+    const result = prepareResizeParams(imageUrl, mode, percent, width, height);
+
+    expect(result).toEqual({
+      mode: 'dimensions',
+      imageUrl,
+      width,
+      height,
+    });
+  });
+
+  it('должна игнорировать percent и width/height в зависимости от режима', () => {
+    const imageUrl = 'https://example.com/image.jpg';
+    const percent = 50;
+    const width = 800;
+    const height = 600;
+
+    const percentResult = prepareResizeParams(
+      imageUrl,
+      'percent',
+      percent,
+      width,
+      height,
     );
+    const dimensionsResult = prepareResizeParams(
+      imageUrl,
+      'dimensions',
+      percent,
+      width,
+      height,
+    );
+
+    expect(percentResult).toEqual({
+      mode: 'percent',
+      imageUrl,
+      percent: 50,
+    });
+    expect(percentResult).not.toHaveProperty('width');
+    expect(percentResult).not.toHaveProperty('height');
+
+    expect(dimensionsResult).toEqual({
+      mode: 'dimensions',
+      imageUrl,
+      width: 800,
+      height: 600,
+    });
+    expect(dimensionsResult).not.toHaveProperty('percent');
+  });
+
+  it('должна корректно работать с различными URL', () => {
+    const blobUrl = 'blob:http://localhost/test';
+    const httpUrl = 'https://example.com/image.jpg';
+    const dataUrl = 'data:image/jpeg;base64,/9j/4AAQSkZJRg==';
+
+    const blobResult = prepareResizeParams(blobUrl, 'percent', 100, 0, 0);
+    const httpResult = prepareResizeParams(
+      httpUrl,
+      'dimensions',
+      0,
+      1920,
+      1080,
+    );
+    const dataResult = prepareResizeParams(dataUrl, 'percent', 75, 0, 0);
+
+    expect(blobResult.imageUrl).toBe(blobUrl);
+    expect(httpResult.imageUrl).toBe(httpUrl);
+    expect(dataResult.imageUrl).toBe(dataUrl);
   });
 });

@@ -1,6 +1,5 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
 import { allSettled, fork } from 'effector';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   $canvas,
@@ -15,6 +14,8 @@ describe('Download Image Feature', () => {
   let mockEditor: any;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let mockLink: any;
+  let createElementSpy: ReturnType<typeof vi.spyOn>;
+  let createObjectURLSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -30,37 +31,32 @@ describe('Download Image Feature', () => {
       remove: vi.fn(),
     };
 
-    // Mock document.createElement
-
-    // @ts-ignore
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (global as any).document.createElement = vi
-      .fn()
+    // Mock document.createElement using vi.spyOn
+    createElementSpy = vi
+      .spyOn(document, 'createElement')
       .mockImplementation((tag: string) => {
         if (tag === 'a') {
-          return mockLink;
+          return mockLink as unknown as HTMLElement;
         }
         return document.createElement(tag);
       });
 
-    // Mock URL methods
+    // Mock URL methods using vi.spyOn
+    createObjectURLSpy = vi
+      .spyOn(URL, 'createObjectURL')
+      .mockReturnValue('blob:test');
 
-    // @ts-ignore
-    global.URL.createObjectURL = vi.fn().mockReturnValue('blob:test');
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
 
-    // @ts-ignore
-    global.URL.revokeObjectURL = vi.fn();
-
-    // Mock window
-
-    // @ts-ignore
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (global as any).window = {
-      // @ts-ignore
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ...(global as any).window,
+    // Mock window using vi.stubGlobal
+    vi.stubGlobal('window', {
+      ...globalThis.window,
       showSaveFilePicker: undefined,
-    };
+    });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it('should throw error if no image is loaded', async () => {
@@ -71,7 +67,7 @@ describe('Download Image Feature', () => {
     // Проверяем, что эффект завершится с ошибкой при отсутствии изображения
     const result = await allSettled(downloadImageFx, {
       scope,
-      // @ts-expect-error
+      // @ts-expect-error - testing error case with null image
       params: { image: null, quality: 100, editor: mockEditor },
     });
     expect(result.status).toBe('fail');
@@ -89,14 +85,12 @@ describe('Download Image Feature', () => {
     };
 
     const mockShowSaveFilePicker = vi.fn().mockResolvedValue(mockFileHandle);
-    // @ts-ignore
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (global as any).window = {
-      // @ts-ignore
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ...(global as any).window,
+
+    // Use vi.stubGlobal for window
+    vi.stubGlobal('window', {
+      ...globalThis.window,
       showSaveFilePicker: mockShowSaveFilePicker,
-    };
+    });
 
     const mockFile = new File(['test'], 'test.jpg', { type: 'image/jpeg' });
     const scope = fork({
@@ -121,15 +115,12 @@ describe('Download Image Feature', () => {
   });
 
   it('should fallback to download link if File System API is not available', async () => {
-    // @ts-ignore
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (global as any).window = {
-      // @ts-ignore
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ...(global as any).window,
+    // Use vi.stubGlobal for window
+    vi.stubGlobal('window', {
+      ...globalThis.window,
       showSaveFilePicker: undefined,
-    };
-    // @ts-ignore
+    });
+
     const mockFile = new File(['test'], 'test.jpg', { type: 'image/jpeg' });
     const scope = fork({
       values: [[$canvas, mockEditor]],
@@ -138,25 +129,22 @@ describe('Download Image Feature', () => {
     await allSettled(imageUploadStarted, { scope, params: mockFile });
     await allSettled(donwloadButtonClicked, { scope });
 
-    expect(document.createElement).toHaveBeenCalledWith('a');
+    expect(createElementSpy).toHaveBeenCalledWith('a');
     expect(mockLink.click).toHaveBeenCalled();
     expect(mockLink.download).toBe('test.jpg');
-    // @ts-ignore
-    expect(global.URL.createObjectURL).toHaveBeenCalled();
+    expect(createObjectURLSpy).toHaveBeenCalled();
   });
 
   it('should handle user cancellation gracefully', async () => {
     const mockShowSaveFilePicker = vi.fn().mockRejectedValue({
       name: 'AbortError',
     });
-    // @ts-ignore
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (global as any).window = {
-      // @ts-ignore
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ...(global as any).window,
+
+    // Use vi.stubGlobal for window
+    vi.stubGlobal('window', {
+      ...globalThis.window,
       showSaveFilePicker: mockShowSaveFilePicker,
-    };
+    });
 
     const mockFile = new File(['test'], 'test.jpg', { type: 'image/jpeg' });
     const scope = fork({
@@ -169,7 +157,7 @@ describe('Download Image Feature', () => {
     // При отмене пользователем эффект должен завершиться успешно (возвращает false)
     expect(mockShowSaveFilePicker).toHaveBeenCalled();
     // Проверяем, что fallback на скачивание не был вызван
-    expect(document.createElement).not.toHaveBeenCalledWith('a');
+    expect(createElementSpy).not.toHaveBeenCalledWith('a');
   });
 
   it('should convert dataURL to Blob correctly', async () => {

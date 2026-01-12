@@ -1,4 +1,5 @@
 import {
+  attach,
   createEffect,
   createEvent,
   createStore,
@@ -137,6 +138,8 @@ export class CanvasEditor {
   /**
    * Загружает изображение по URL.
    * @param url - Ссылка на изображение
+   * @todo Заменить на общую утилиту loadImageFromUrl из ~/entities/image/lib
+   *       после добавления поддержки crossOrigin в loadImageFromUrl
    */
   public async loadImage(url: string): Promise<boolean> {
     return new Promise((resolve, reject) => {
@@ -394,9 +397,10 @@ export const filtersChanged = createEvent<{
   value: Filters[FilterKey];
 }>();
 
-const imageUploadFx = createEffect(async (file: File) => {
+export const imageUploadBaseFx = createEffect(async (file: File) => {
   return URL.createObjectURL(file);
 });
+const imageUploadFx = attach({ effect: imageUploadBaseFx });
 
 // Events
 export const mountCanvas = createEvent<{

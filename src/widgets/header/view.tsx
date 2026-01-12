@@ -9,6 +9,8 @@ import {
   ZoomOutButton,
 } from '~/features/viewport-control';
 
+import { Dialog, OpenButton } from '../image-resize-dialog';
+
 export function Header() {
   return (
     <header className="flex h-16 shrink-0 items-center justify-between border-b border-zinc-800 bg-zinc-950 px-6">
@@ -18,6 +20,7 @@ export function Header() {
       </div>
 
       <div className="flex items-center gap-4">
+        <OpenButton />
         <div className="mr-4 flex items-center gap-1 border-r border-zinc-800 pr-4">
           <ResetZoomButton />
           <ZoomInButton />
@@ -32,6 +35,7 @@ export function Header() {
 
         <DownloadImageButton />
       </div>
+      <Dialog />
     </header>
   );
 }

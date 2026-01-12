@@ -6,24 +6,29 @@ import { Button } from '~/shared/ui';
 import {
   $disabledDownload,
   $downloadPending,
-  $resizePercent,
+  dialogInstance,
   downloadResizedImageClicked,
-  resizePercentReset,
+  resetButtonClicked,
 } from '../model';
 
+export function OpenButton() {
+  const onClick = useUnit(dialogInstance.open);
+  return <Button onClick={onClick}>Изменить размер</Button>;
+}
+
 export function ResetButton() {
-  const [resizePercent, onClick] = useUnit([
-    $resizePercent,
-    resizePercentReset,
+  const [disabled, handleClick] = useUnit([
+    $disabledDownload,
+    resetButtonClicked,
   ]);
 
   return (
     <Button
-      size="sm"
-      variant="ghost"
-      onClick={onClick}
-      className="self-start"
-      disabled={resizePercent === 100}
+      size="md"
+      variant="danger"
+      className="w-fit"
+      disabled={disabled}
+      onClick={handleClick}
     >
       <RotateCcw size={16} className="mr-2" />
       Сбросить
@@ -43,15 +48,15 @@ export function DownloadButton() {
       size="md"
       onClick={onClick}
       variant="primary"
-      className="w-full"
-      disabled={disabledDownload || pending}
+      className="w-fit"
+      disabled={disabledDownload}
     >
       {pending ? (
         'Обработка и скачивание...'
       ) : (
         <>
           <Download size={18} className="mr-2" />
-          Скачать измененное изображение
+          применить и скачать
         </>
       )}
     </Button>

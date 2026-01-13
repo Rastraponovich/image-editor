@@ -20,7 +20,7 @@ export function DialogBackdrop({ onClick, className }: DialogBackdropProps) {
 
   return (
     <div
-      className={cn('absolute inset-0 bg-white/10 backdrop-blur-sm', className)}
+      className={cn('bg-app/10 absolute inset-0 backdrop-blur-sm', className)}
       onClick={handleClick}
     />
   );

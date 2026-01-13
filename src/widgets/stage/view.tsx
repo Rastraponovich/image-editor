@@ -14,7 +14,7 @@ export function CanvasStage() {
   return (
     <div
       ref={setViewport}
-      className="flex h-full w-full items-center justify-center overflow-hidden bg-zinc-900 p-12"
+      className="bg-workspace flex h-full w-full items-center justify-center overflow-hidden p-12"
     >
       {viewport && (
         <Wrapper>
@@ -32,7 +32,7 @@ function Wrapper({ children }: { children: React.ReactNode }) {
     <>
       <div
         className={cn(
-          'flex flex-col items-center gap-4 text-zinc-500',
+          'text-text-tertiary flex flex-col items-center gap-4',
           image && 'hidden',
         )}
       >

@@ -2,6 +2,7 @@ import { Image as ImageIcon } from 'lucide-react';
 
 import { DownloadImageButton } from '~/features/download-image';
 import { RedoButton, UndoButton } from '~/features/history-buttons';
+import { ThemeToggle } from '~/features/theme-toggle';
 import { UploadImageButton } from '~/features/upload-image';
 import {
   ResetZoomButton,
@@ -13,20 +14,20 @@ import { Dialog, OpenButton } from '../image-resize-dialog';
 
 export function Header() {
   return (
-    <header className="flex h-16 shrink-0 items-center justify-between border-b border-zinc-800 bg-zinc-950 px-6">
-      <div className="flex items-center gap-2 text-xl font-bold text-zinc-100">
-        <ImageIcon className="text-blue-500" />
+    <header className="bg-surface border-border-subtle flex h-16 shrink-0 items-center justify-between border-b px-6">
+      <div className="text-text-primary flex items-center gap-2 text-xl font-bold">
+        <ImageIcon className="text-primary" />
         <h1>Piclet</h1>
       </div>
 
       <div className="flex items-center gap-4">
         <OpenButton />
-        <div className="mr-4 flex items-center gap-1 border-r border-zinc-800 pr-4">
+        <div className="border-border-subtle mr-4 flex items-center gap-1 border-r pr-4">
           <ResetZoomButton />
           <ZoomInButton />
           <ZoomOutButton />
         </div>
-        <div className="mr-4 flex items-center gap-1 border-r border-zinc-800 pr-4">
+        <div className="border-border-subtle mr-4 flex items-center gap-1 border-r pr-4">
           <UndoButton />
           <RedoButton />
         </div>
@@ -34,6 +35,8 @@ export function Header() {
         <UploadImageButton />
 
         <DownloadImageButton />
+
+        <ThemeToggle />
       </div>
       <Dialog />
     </header>

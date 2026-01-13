@@ -16,7 +16,7 @@ export function DialogCloseButton({ className }: DialogCloseButtonProps) {
       type="button"
       onClick={onClose}
       className={cn(
-        'flex size-8 items-center justify-center rounded-md bg-zinc-100 text-zinc-600 transition-colors hover:bg-zinc-200 hover:text-zinc-900 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-white focus:outline-none',
+        'bg-subtle text-text-secondary hover:bg-bg-secondary hover:text-text-primary focus:ring-primary focus:ring-offset-surface flex size-8 items-center justify-center rounded-md transition-colors focus:ring-2 focus:ring-offset-2 focus:outline-none',
         className,
       )}
       aria-label="Закрыть диалог"

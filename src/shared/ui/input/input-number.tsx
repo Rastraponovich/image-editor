@@ -14,7 +14,7 @@ export const InputNumber = forwardRef<HTMLInputElement, InputNumberProps>(
         ref={ref}
         type="number"
         className={cn(
-          'h-10 w-full rounded-lg border border-zinc-300 bg-zinc-50 px-3 text-sm text-zinc-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-400',
+          'border-border-default bg-surface-elevated text-text-primary focus:border-primary focus:ring-primary/20 disabled:bg-subtle disabled:text-text-tertiary h-10 w-full rounded-lg border px-3 text-sm focus:ring-2 focus:outline-none disabled:cursor-not-allowed',
           className,
         )}
       />

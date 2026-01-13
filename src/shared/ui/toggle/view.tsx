@@ -5,6 +5,7 @@ import { cn } from '~/shared/lib/cn';
 interface ToggleProps {
   label: string;
   checked: boolean;
+  disabled?: boolean;
   className?: string;
   onChange: (
     checked: boolean,
@@ -14,28 +15,29 @@ interface ToggleProps {
 
 export const Toggle = forwardRef<HTMLInputElement, ToggleProps>(
   (props, ref) => {
-    const { label, checked, onChange, className } = props;
+    const { label, checked, onChange, className, disabled } = props;
 
     return (
       <label
         className={cn(
-          'flex cursor-pointer items-center justify-between gap-4 py-2',
+          'flex cursor-pointer items-center justify-between gap-4 py-2 has-[input:disabled]:cursor-default',
           className,
         )}
       >
-        <span className="text-sm text-zinc-400">{label}</span>
+        <span className="text-text-secondary text-sm">{label}</span>
 
         <div
           className={cn(
-            'relative h-6 w-11 rounded-full transition-colors duration-200 focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 focus-within:ring-offset-zinc-900',
-            checked ? 'bg-blue-600' : 'bg-zinc-700',
+            'focus-within:ring-primary focus-within:ring-offset-bg-app relative h-6 w-11 rounded-full transition-colors duration-200 focus-within:ring-2 focus-within:ring-offset-2',
+            checked ? 'bg-primary' : 'bg-border-default',
           )}
         >
           <input
             ref={ref}
             type="checkbox"
             checked={checked}
-            className="sr-only"
+            disabled={disabled}
+            className="peer sr-only"
             onChange={event => onChange(event.target.checked, event)}
           />
 

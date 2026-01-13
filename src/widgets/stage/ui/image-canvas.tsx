@@ -20,7 +20,7 @@ export function ImageCanvas({ viewport }: { viewport: HTMLElement }) {
   return (
     <ViewportControlWrapper
       editor={editor}
-      className="relative flex items-center justify-center bg-white shadow-[0_0_100px_rgba(0,0,0,0.5)] ring-1 ring-white/5"
+      className="bg-surface ring-border-subtle relative flex items-center justify-center shadow-lg ring-1"
     >
       <div
         ref={node => {

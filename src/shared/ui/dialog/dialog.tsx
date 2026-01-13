@@ -55,7 +55,7 @@ function DialogInner(props: DialogInnerProps) {
         aria-labelledby={titleId}
         onClick={event => event.stopPropagation()}
         className={cn(
-          'animate-fade-in-scale relative z-10 max-h-[90vh] w-full max-w-4xl overflow-hidden rounded-2xl border border-zinc-200 bg-white p-0 shadow-2xl duration-200 outline-none',
+          'animate-fade-in-scale border-border-subtle bg-surface relative z-10 max-h-[90vh] w-full max-w-4xl overflow-hidden rounded-2xl border p-0 shadow-2xl duration-200 outline-none',
           className,
         )}
       >

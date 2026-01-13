@@ -33,7 +33,7 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
       <div className="group flex w-full flex-col gap-2 py-2">
         <label
           htmlFor={id}
-          className="flex justify-between text-sm text-zinc-400 group-focus-within:text-zinc-900"
+          className="text-text-secondary group-focus-within:text-text-primary flex justify-between text-sm"
         >
           <span>{label}</span>
           <span>
@@ -52,7 +52,7 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
           onDoubleClick={onDoubleClick}
           onChange={event => onChange(Number(event.target.value))}
           className={cn(
-            'h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-zinc-700 accent-blue-500 focus-within:bg-green-400 disabled:cursor-default',
+            'bg-border-default accent-primary focus-within:bg-primary h-1.5 w-full cursor-pointer appearance-none rounded-lg disabled:cursor-default',
             className,
           )}
         />

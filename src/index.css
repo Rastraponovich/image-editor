@@ -1,21 +1,195 @@
 @import 'tailwindcss';
 
 :root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-
   color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+}
 
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  html {
+    font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+    line-height: 1.5;
+    font-weight: 400;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  html {
+    color: rgba(0, 0, 0, 0.87);
+    background-color: var(--color-bg-app);
+  }
+
+  html.light {
+    color: rgba(0, 0, 0, 0.87);
+    background-color: var(--color-bg-app);
+  }
+
+  html.dark {
+    color: rgba(255, 255, 255, 0.87);
+    background-color: var(--color-bg-app);
+  }
+
+  body {
+    margin: 0;
+    display: flex;
+    place-items: center;
+    min-width: 320px;
+    min-height: 100vh;
+  }
+
+  :root {
+    /* Primary цвета - Indigo (современный и приятный) */
+    --primary: var(--color-indigo-600);
+    --primary-hover: var(--color-indigo-700);
+    --primary-light: var(--color-indigo-50);
+    --primary-border: var(--color-indigo-200);
+
+    /* Danger цвета */
+    --danger: var(--color-red-600);
+    --danger-hover: var(--color-red-700);
+    --danger-light: var(--color-red-50);
+    --danger-border: var(--color-red-200);
+
+    /* Фон приложения */
+    --bg-app: var(--color-white);
+    --bg-surface: var(--color-white);
+    --bg-surface-elevated: var(--color-zinc-50);
+    --bg-subtle: var(--color-zinc-100);
+    --bg-workspace: var(--color-zinc-200);
+
+    /* Текст */
+    --text-primary: var(--color-zinc-900);
+    --text-secondary: var(--color-zinc-600);
+    --text-tertiary: var(--color-zinc-500);
+    --text-inverse: var(--color-white);
+
+    /* Границы */
+    --border-subtle: var(--color-zinc-200);
+    --border-default: var(--color-zinc-300);
+    --border-strong: var(--color-zinc-400);
+
+    /* Secondary кнопка */
+    --bg-secondary: var(--color-zinc-100);
+    --bg-secondary-hover: var(--color-zinc-200);
+    --text-secondary-button: var(--color-zinc-900);
+
+    /* Ghost кнопка */
+    --ghost-text: var(--color-zinc-600);
+    --ghost-text-hover: var(--color-zinc-900);
+    --ghost-hover-bg: var(--color-zinc-100);
+
+    /* Акцентные элементы */
+    --accent-subtle: var(--color-indigo-50);
+    --accent-border: var(--color-indigo-200);
+  }
+
+  .dark {
+    /* Primary цвета для темной темы */
+    --primary: var(--color-indigo-500);
+    --primary-hover: var(--color-indigo-600);
+    --primary-light: var(--color-indigo-950);
+    --primary-border: var(--color-indigo-800);
+
+    /* Danger цвета */
+    --danger: var(--color-red-500);
+    --danger-hover: var(--color-red-600);
+    --danger-light: var(--color-red-950);
+    --danger-border: var(--color-red-800);
+
+    /* Фон приложения */
+    --bg-app: var(--color-zinc-900);
+    --bg-surface: var(--color-zinc-800);
+    --bg-surface-elevated: var(--color-zinc-700);
+    --bg-subtle: var(--color-zinc-700);
+    --bg-workspace: var(--color-zinc-700);
+
+    /* Текст */
+    --text-primary: var(--color-zinc-100);
+    --text-secondary: var(--color-zinc-400);
+    --text-tertiary: var(--color-zinc-500);
+    --text-inverse: var(--color-white);
+
+    /* Границы */
+    --border-subtle: var(--color-zinc-700);
+    --border-default: var(--color-zinc-600);
+    --border-strong: var(--color-zinc-500);
+
+    /* Secondary кнопка */
+    --bg-secondary: var(--color-zinc-800);
+    --bg-secondary-hover: var(--color-zinc-700);
+    --text-secondary-button: var(--color-zinc-100);
+
+    /* Ghost кнопка */
+    --ghost-text: var(--color-zinc-400);
+    --ghost-text-hover: var(--color-zinc-100);
+    --ghost-hover-bg: var(--color-zinc-800);
+
+    /* Акцентные элементы */
+    --accent-subtle: var(--color-indigo-950);
+    --accent-border: var(--color-indigo-800);
+  }
+
+  button,
+  a {
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  img {
+    user-select: none;
+    pointer-events: none;
+  }
 }
 
 @theme {
+  /* Primary цвета */
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-light: var(--primary-light);
+  --color-primary-border: var(--primary-border);
+
+  /* Danger цвета */
+  --color-danger: var(--danger);
+  --color-danger-hover: var(--danger-hover);
+  --color-danger-light: var(--danger-light);
+  --color-danger-border: var(--danger-border);
+
+  /* Фон */
+  --color-app: var(--bg-app);
+  --color-surface: var(--bg-surface);
+  --color-surface-elevated: var(--bg-surface-elevated);
+  --color-subtle: var(--bg-subtle);
+  --color-workspace: var(--bg-workspace);
+
+  /* Текст */
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary: var(--text-tertiary);
+  --color-text-inverse: var(--text-inverse);
+
+  /* Границы */
+  --color-border-subtle: var(--border-subtle);
+  --color-border-default: var(--border-default);
+  --color-border-strong: var(--border-strong);
+
+  /* Secondary кнопка */
+  --color-bg-secondary: var(--bg-secondary);
+  --color-bg-secondary-hover: var(--bg-secondary-hover);
+  --color-text-secondary-button: var(--text-secondary-button);
+
+  /* Ghost кнопка */
+  --color-ghost-text: var(--ghost-text);
+  --color-ghost-text-hover: var(--ghost-text-hover);
+  --color-ghost-hover-bg: var(--ghost-hover-bg);
+
+  /* Акцентные элементы */
+  --color-accent-subtle: var(--accent-subtle);
+  --color-accent-border: var(--accent-border);
+
   --animate-fade-in-scale: fade-in-scale 0.3s ease-out;
   --animate-fade-out-scale: fade-out-scale 0.3s ease-out;
 
@@ -38,24 +212,5 @@
       opacity: 1;
       transform: scale(1);
     }
-  }
-}
-
-@layer base {
-  body {
-    margin: 0;
-    display: flex;
-    place-items: center;
-    min-width: 320px;
-    min-height: 100vh;
-  }
-
-  button {
-    cursor: pointer;
-  }
-
-  img {
-    user-select: none;
-    pointer-events: none;
   }
 }

@@ -12,7 +12,7 @@ export function DialogHeader({ title }: DialogHeaderProps) {
   }
 
   return (
-    <h2 id={titleId} className="text-lg font-semibold text-zinc-900">
+    <h2 id={titleId} className="text-text-primary text-lg font-semibold">
       {title}
     </h2>
   );
